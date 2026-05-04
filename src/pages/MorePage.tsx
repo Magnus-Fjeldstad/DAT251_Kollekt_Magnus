@@ -6,11 +6,11 @@ import { NidoCard, NidoSection } from '../components/nido';
 import { getUnreadGeneralNotifications } from '../lib/notifications';
 
 const tiles = [
-  { key: 'calendar', glyph: '📅', color: 'bg-nido-sky', path: '/calendar' },
-  { key: 'houseBoard', glyph: '📌', color: 'bg-nido-butter', path: '/leaderboard' },
-  { key: 'games', glyph: '🎲', color: 'bg-coral-soft', path: '/games' },
-  { key: 'profile', glyph: '🦊', color: 'bg-[hsl(282_42%_86%)]', path: '/profile' },
-  { key: 'notifications', glyph: '🔔', color: 'bg-card', path: '/profile' },
+  { key: 'calendar', glyph: '📅', color: 'bg-nido-sky', path: '/calendar', prefetch: () => import('./CalendarPage') },
+  { key: 'houseBoard', glyph: '📌', color: 'bg-nido-butter', path: '/leaderboard', prefetch: () => import('./LeaderboardPage') },
+  { key: 'games', glyph: '🎲', color: 'bg-coral-soft', path: '/games', prefetch: () => import('./GamesPage') },
+  { key: 'profile', glyph: '🦊', color: 'bg-[hsl(282_42%_86%)]', path: '/profile', prefetch: () => import('./ProfilePage') },
+  { key: 'notifications', glyph: '🔔', color: 'bg-card', path: '/profile', prefetch: () => import('./ProfilePage') },
 ];
 
 export default function MorePage() {
@@ -73,6 +73,8 @@ export default function MorePage() {
             <button
               key={tile.key}
               onClick={() => navigate(tile.path)}
+              onMouseEnter={tile.prefetch}
+              onFocus={tile.prefetch}
               className={`min-h-36 rounded-[1.65rem] border-[1.5px] border-primary p-5 text-left shadow-[4px_5px_0_var(--ink)] ${tile.color}`}
             >
               <div className="text-4xl leading-none">{tile.glyph}</div>
