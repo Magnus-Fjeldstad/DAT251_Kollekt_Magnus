@@ -19,6 +19,7 @@ import type { MemberStatus } from '../lib/types';
 import LanguageSwitcher from './LanguageSwitcher';
 import { NidoAvatar, NidoChip } from './nido';
 import { cn } from './ui/utils';
+import { getGeneralNotifications, getUnreadGeneralNotifications } from '../lib/notifications';
 
 function HeaderMenuItem({
   icon: Icon,
@@ -54,14 +55,22 @@ export default function AppHeader() {
     handleLogout,
     notifications,
     dismissNotification,
-    clearAllNotifications,
-    markAllNotificationsRead,
+    markNotificationsRead,
   } = useUser();
   const [showMenu, setShowMenu] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const generalNotifications = getGeneralNotifications(notifications);
+  const unreadCount = getUnreadGeneralNotifications(notifications).length;
+  const clearGeneralNotifications = () => {
+    generalNotifications.forEach((notification) => {
+      void dismissNotification(notification.id);
+    });
+  };
+  const markGeneralNotificationsRead = () => {
+    markNotificationsRead(generalNotifications.filter((notification) => !notification.read).map((notification) => notification.id));
+  };
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -158,24 +167,24 @@ export default function AppHeader() {
                         <p className="nido-section-label">{t('header.notifications')}</p>
                         <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.08em]">
                           {unreadCount > 0 && (
-                            <button onClick={markAllNotificationsRead} className="text-secondary">
+                            <button onClick={markGeneralNotificationsRead} className="text-secondary">
                               {t('header.markAllRead')}
                             </button>
                           )}
-                          {notifications.length > 0 && (
-                            <button onClick={clearAllNotifications} className="text-ink-3">
+                          {generalNotifications.length > 0 && (
+                            <button onClick={clearGeneralNotifications} className="text-ink-3">
                               {t('header.clearAll')}
                             </button>
                           )}
                         </div>
                       </div>
-                      {notifications.length === 0 && (
+                      {generalNotifications.length === 0 && (
                         <p className="rounded-xl bg-muted p-4 text-center text-xs text-ink-3">
                           {t('header.allCaughtUp')}
                         </p>
                       )}
                       <div className="max-h-80 space-y-2 overflow-auto">
-                        {notifications.slice(0, 6).map((n) => (
+                        {generalNotifications.slice(0, 6).map((n) => (
                           <div
                             key={n.id}
                             className={cn('group relative rounded-xl border border-primary/35 p-3 text-xs', n.read ? 'bg-muted' : 'bg-coral-soft')}

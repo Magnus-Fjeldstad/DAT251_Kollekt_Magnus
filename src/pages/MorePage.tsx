@@ -3,6 +3,7 @@ import { ChevronRight, LogOut } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUser } from '../context/UserContext';
 import { NidoCard, NidoSection } from '../components/nido';
+import { getUnreadGeneralNotifications } from '../lib/notifications';
 
 const tiles = [
   { key: 'calendar', glyph: '📅', color: 'bg-nido-sky', path: '/calendar' },
@@ -16,7 +17,7 @@ export default function MorePage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentUser, notifications, handleLogout } = useUser();
-  const unread = notifications.filter((notification) => !notification.read).length;
+  const unread = getUnreadGeneralNotifications(notifications).length;
   const collectiveName = currentUser?.collectiveName ?? t('more.house.household');
 
   const houseRows = [

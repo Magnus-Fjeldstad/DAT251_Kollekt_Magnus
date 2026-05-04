@@ -7,6 +7,10 @@ export async function regretTask(taskId: string, memberName: string) {
 export async function markAllNotificationsAsRead(userName: string): Promise<void> {
   await api.post(`/notifications/${userName}/read`, {});
 }
+
+export async function markNotificationAsRead(userName: string, id: number): Promise<void> {
+  await api.post(`/notifications/${encodeURIComponent(userName)}/${id}/read`, {});
+}
 export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const TOKEN_KEY = 'kollekt-access-token';

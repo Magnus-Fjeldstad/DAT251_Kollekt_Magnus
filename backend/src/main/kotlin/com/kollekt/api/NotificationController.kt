@@ -29,6 +29,14 @@ class NotificationController(
         notificationService.markAllAsRead(userName)
     }
 
+    @PostMapping("/{userName}/{id}/read")
+    fun markAsRead(
+        @PathVariable userName: String,
+        @PathVariable id: Long,
+    ) {
+        notificationService.markAsRead(userName, id)
+    }
+
     @DeleteMapping("/{userName}/{id}")
     fun deleteNotification(
         @PathVariable userName: String,

@@ -7,12 +7,13 @@ import { useUser } from '../context/UserContext';
 import { formatDateTime, formatTime } from '../i18n/helpers';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import type { ChatMessage } from '../lib/types';
+import { getUnreadChatNotifications } from '../lib/notifications';
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '🎉', '😮'];
 
 export default function ChatPage() {
   const { t } = useTranslation();
-  const { currentUser } = useUser();
+  const { currentUser, notifications, dismissNotification } = useUser();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [showPollForm, setShowPollForm] = useState(false);
@@ -48,6 +49,12 @@ export default function ChatPage() {
   useEffect(() => {
     fetchMessages();
   }, [name]);
+
+  useEffect(() => {
+    getUnreadChatNotifications(notifications).forEach((notification) => {
+      void dismissNotification(notification.id);
+    });
+  }, [notifications, dismissNotification]);
 
   useEffect(() => {
     if (!name) return;

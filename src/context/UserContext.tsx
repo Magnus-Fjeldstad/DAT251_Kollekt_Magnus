@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import { api, getAccessToken, logoutSession, deleteNotification, deleteAllNotifications } from '../lib/api';
+import { api, getAccessToken, logoutSession, deleteNotification, deleteAllNotifications, markNotificationAsRead } from '../lib/api';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import type { AppUser, Notification } from '../lib/types';
 
@@ -14,6 +14,7 @@ interface UserContextValue {
   dismissNotification: (id: number) => void;
   clearAllNotifications: () => void;
   markAllNotificationsRead: () => void;
+  markNotificationsRead: (ids: number[]) => void;
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -111,6 +112,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   }, [currentUser?.name]);
 
+  const markNotificationsRead = useCallback(async (ids: number[]) => {
+    if (!currentUser?.name || ids.length === 0) return;
+    const idSet = new Set(ids);
+    setNotifications((prev) => prev.map((n) => (idSet.has(n.id) ? { ...n, read: true } : n)));
+    await Promise.allSettled(ids.map((id) => markNotificationAsRead(currentUser.name, id)));
+  }, [currentUser?.name]);
+
   return (
     <UserContext.Provider value={{
       currentUser,
@@ -123,6 +131,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       dismissNotification,
       clearAllNotifications,
       markAllNotificationsRead,
+      markNotificationsRead,
     }}>
       {children}
     </UserContext.Provider>

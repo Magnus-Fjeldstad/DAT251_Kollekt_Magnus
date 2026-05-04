@@ -178,6 +178,15 @@ class NotificationService(
     }
 
     @Transactional
+    fun markAsRead(
+        userName: String,
+        id: Long,
+    ) {
+        val notification = notificationRepository.findByIdAndUserName(id, userName) ?: return
+        notificationRepository.save(notification.copy(read = true))
+    }
+
+    @Transactional
     fun deleteNotification(
         userName: String,
         id: Long,

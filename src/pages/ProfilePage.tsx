@@ -25,6 +25,7 @@ import {
 } from "../lib/api";
 import { useUser } from "../context/UserContext";
 import { formatDateTime, formatNotificationMessage, translateKey } from "../i18n/helpers";
+import { getGeneralNotifications, getUnreadGeneralNotifications } from "../lib/notifications";
 import type {
   AppUser,
   MemberStatus,
@@ -60,8 +61,7 @@ export default function ProfilePage() {
     notifications,
     notificationsLoading,
     dismissNotification,
-    clearAllNotifications,
-    markAllNotificationsRead,
+    markNotificationsRead,
   } = useUser();
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteSent, setInviteSent] = useState(false);
@@ -212,7 +212,16 @@ export default function ProfilePage() {
     navigate("/login");
   };
 
-  const unread = notifications.filter((notification) => !notification.read).length;
+  const generalNotifications = getGeneralNotifications(notifications);
+  const unread = getUnreadGeneralNotifications(notifications).length;
+  const clearGeneralNotifications = () => {
+    generalNotifications.forEach((notification) => {
+      void dismissNotification(notification.id);
+    });
+  };
+  const markGeneralNotificationsRead = () => {
+    markNotificationsRead(generalNotifications.filter((notification) => !notification.read).map((notification) => notification.id));
+  };
 
   return (
     <motion.div
@@ -347,27 +356,27 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   {unread > 0 && (
                     <button
-                      onClick={markAllNotificationsRead}
+                      onClick={markGeneralNotificationsRead}
                       className="text-xs text-primary font-medium"
                     >
                       {t("profile.notifications.markAllAsRead")}
                     </button>
                   )}
-                  {notifications.length > 0 && (
+                  {generalNotifications.length > 0 && (
                     <button
-                      onClick={clearAllNotifications}
+                      onClick={clearGeneralNotifications}
                       className="text-xs text-muted-foreground hover:text-destructive transition-colors font-medium ml-auto"
                     >
                       {t("header.clearAll")}
                     </button>
                   )}
                 </div>
-                {notifications.length === 0 && (
+                {generalNotifications.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-2">
                     {t("profile.notifications.empty")}
                   </p>
                 )}
-                {notifications.slice(0, 8).map((notification) => (
+                {generalNotifications.slice(0, 8).map((notification) => (
                   <div
                     key={notification.id}
                     className={`group relative rounded-xl p-2.5 text-xs ${

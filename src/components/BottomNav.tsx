@@ -3,6 +3,8 @@ import { Home, CheckSquare, MessageCircle, Wallet, MoreHorizontal } from 'lucide
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { cn } from './ui/utils';
+import { useUser } from '../context/UserContext';
+import { getUnreadChatNotifications } from '../lib/notifications';
 
 const tabs = [
   { labelKey: 'bottomNav.home', icon: Home, path: '/', glyph: '🏠' },
@@ -18,6 +20,8 @@ export default function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { notifications } = useUser();
+  const chatUnreadCount = getUnreadChatNotifications(notifications).length;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-background via-background to-transparent px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-5">
@@ -51,6 +55,11 @@ export default function BottomNav() {
                 <span className="text-base leading-none" aria-hidden="true">{tab.glyph}</span>
               ) : (
                 <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              {tab.path === '/chat' && chatUnreadCount > 0 && !isActive && (
+                <span className="absolute right-4 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border border-primary bg-secondary px-1 font-mono text-[8px] font-bold text-secondary-foreground">
+                  {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                </span>
               )}
               <span className="max-w-full truncate">{t(tab.labelKey)}</span>
             </button>
