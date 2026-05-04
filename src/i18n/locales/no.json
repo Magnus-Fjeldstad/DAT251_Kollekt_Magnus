@@ -129,7 +129,8 @@
     "chat": "Chat",
     "economy": "Økonomi",
     "board": "Toppliste",
-    "games": "Spill"
+    "games": "Spill",
+    "more": "Mer"
   },
   "auth": {
     "loginTab": "Logg inn",
@@ -212,9 +213,15 @@
     "filters": {
       "ALL": "Oppgaver",
       "MINE": "Mine",
+      "OPEN": "Åpne",
       "TODAY": "I dag",
       "INCOMPLETE": "Ikke ferdig",
       "DONE": "Fullført"
+    },
+    "due": {
+      "label": "Frist",
+      "today": "I dag",
+      "tomorrow": "I morgen"
     },
     "newTask": "Ny oppgave",
     "editTask": "Rediger oppgave",
@@ -495,6 +502,48 @@
       "challenge": "Utfordring",
       "toast": "Skål",
       "never": "Jeg har aldri"
+    }
+  },
+  "more": {
+    "eyebrow": "Alt annet",
+    "titlePrefix": "Mer",
+    "titleEmphasis": "rede",
+    "titleSuffix": "stæsj",
+    "you": "Du",
+    "tiles": {
+      "calendar": {
+        "label": "Kalender",
+        "sub": "Hendelser denne uken"
+      },
+      "houseBoard": {
+        "label": "Hustavle",
+        "sub": "Notater festet"
+      },
+      "games": {
+        "label": "Spill",
+        "sub": "Kortstokker"
+      },
+      "profile": {
+        "label": "Profil",
+        "sub": "{{name}} · konto"
+      },
+      "notifications": {
+        "label": "Varsler",
+        "sub_one": "{{count}} ulest",
+        "sub_other": "{{count}} uleste"
+      }
+    },
+    "house": {
+      "title": "Hus",
+      "address": "Birkebeinerveien 12",
+      "household": "Kollektiv",
+      "householdCode": "{{code}} · kollektiv",
+      "inviteRoommate": "Inviter en romkamerat",
+      "code": "Kode: {{code}}",
+      "pending": "venter",
+      "houseRules": "Husregler",
+      "agreements": "{{count}} avtaler",
+      "signOut": "Logg ut"
     }
   },
   "profile": {

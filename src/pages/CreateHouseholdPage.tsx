@@ -7,6 +7,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { api, getUserMessage } from '../lib/api';
 import { useUser } from '../context/UserContext';
 import type { AppUser } from '../lib/types';
+import { NidoButton, NidoCard, NidoChip, NidoDots } from '../components/nido';
 
 export default function CreateHouseholdPage() {
   const navigate = useNavigate();
@@ -115,39 +116,54 @@ export default function CreateHouseholdPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background flex flex-col items-center justify-center px-6">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
+    <div className="min-h-screen bg-background px-5 py-6 text-foreground">
+      <div className="mx-auto w-full max-w-lg">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-primary bg-[var(--sky)] shadow-[2px_2px_0_var(--ink)]">
+              <img src="/favicon.png" alt="" className="h-7 w-7 rounded-full object-cover" />
+            </span>
+            <span className="font-display text-3xl italic leading-none">Kollekt</span>
+          </div>
+          <LanguageSwitcher />
+        </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm space-y-6"
+          className="space-y-6"
       >
-        <div className="text-center">
-          <h1 className="font-display text-2xl font-bold">
-            {setupMode === 'create' ? t('createHousehold.titleCreate') : t('createHousehold.titleJoin')}
+          <section>
+            <NidoChip className="mb-4">
+              {setupMode === 'create' ? t('createHousehold.stepOf', { step, total: 3 }) : 'join with code'}
+            </NidoChip>
+            <h1 className="nido-title text-[3.35rem] leading-[0.95]">
+              {setupMode === 'create' ? (
+                <>Make a <em className="text-secondary">nest</em>.</>
+              ) : (
+                <>Join the <em className="text-secondary">nest</em>.</>
+              )}
           </h1>
-          {setupMode === 'create' && (
-            <p className="text-sm text-muted-foreground mt-1">
-              {t('createHousehold.stepOf', { step, total: 3 })}
+            <p className="mt-4 text-base leading-6 text-ink-2">
+              {setupMode === 'create'
+                ? t('createHousehold.roomSetupDescription')
+                : t('createHousehold.joinIntro')}
             </p>
-          )}
-        </div>
+          </section>
 
-        <div className="flex gap-1 glass rounded-xl p-1">
+          <div className="flex gap-1 rounded-full border-[1.5px] border-primary bg-card p-1 shadow-[3px_3px_0_var(--ink)]">
           <button
             onClick={() => setSetupMode('create')}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-              setupMode === 'create' ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground'
+              className={`flex-1 rounded-full px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.1em] transition-all ${
+              setupMode === 'create' ? 'bg-primary text-primary-foreground' : 'text-ink-3'
             }`}
           >
             {t('createHousehold.createHome')}
           </button>
           <button
             onClick={() => setSetupMode('join')}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-              setupMode === 'join' ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground'
+              className={`flex-1 rounded-full px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.1em] transition-all ${
+              setupMode === 'join' ? 'bg-primary text-primary-foreground' : 'text-ink-3'
             }`}
           >
             {t('createHousehold.joinHome')}
@@ -155,93 +171,91 @@ export default function CreateHouseholdPage() {
         </div>
 
         {setupMode === 'create' && (
-          <div className="flex gap-2">
+            <div className="flex gap-2 px-1">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`flex-1 h-1 rounded-full ${step >= s ? 'gradient-primary' : 'bg-muted'}`} />
+                <div key={s} className={`h-2 flex-1 rounded-full border border-primary ${step >= s ? 'bg-secondary' : 'bg-muted'}`} />
             ))}
           </div>
         )}
 
         {setupMode === 'join' && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="glass rounded-2xl p-5 space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-accent/30 to-accent/5 flex items-center justify-center mx-auto">
-                <KeyRound className="h-7 w-7 text-foreground" />
+              <NidoCard className="space-y-5 p-5">
+                <div className="mx-auto flex h-20 w-20 rotate-[-4deg] items-center justify-center rounded-2xl border-[1.5px] border-primary bg-nido-butter text-4xl shadow-[3px_3px_0_var(--ink)]">
+                  <KeyRound className="h-9 w-9" />
               </div>
-              <p className="text-sm text-center text-muted-foreground">{t('createHousehold.joinIntro')}</p>
               <input
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder={t('createHousehold.enterInviteCode')}
-                className="w-full bg-muted/50 rounded-lg px-3 py-2.5 text-sm font-mono tracking-wider placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full px-4 py-4 text-center font-mono text-lg font-bold uppercase tracking-[0.22em] placeholder:text-muted-foreground"
               />
-            </div>
+              </NidoCard>
             {error && <p className="text-xs text-destructive text-center">{error}</p>}
-            <button
+              <NidoButton
               onClick={handleJoinCollective}
               disabled={joining || !joinCode.trim()}
-              className="w-full gradient-primary rounded-xl py-3 text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full"
             >
               {joining ? t('createHousehold.joining') : <>{t('createHousehold.joinButton')} <ArrowRight className="h-4 w-4" /></>}
-            </button>
+              </NidoButton>
           </motion.div>
         )}
 
         {/* Step 1: Name & Address */}
         {setupMode === 'create' && step === 1 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="glass rounded-2xl p-5 space-y-4">
-              <div className="h-14 w-14 rounded-2xl gradient-primary flex items-center justify-center mx-auto">
-                <Home className="h-7 w-7 text-primary-foreground" />
+              <NidoCard className="space-y-5 p-5">
+                <div className="mx-auto flex h-20 w-20 rotate-[-4deg] items-center justify-center rounded-2xl border-[1.5px] border-primary bg-coral-soft text-4xl shadow-[3px_3px_0_var(--ink)]">
+                  <Home className="h-9 w-9" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">{t('createHousehold.householdName')}</label>
+                  <label className="nido-section-label mb-2 block">{t('createHousehold.householdName')}</label>
                 <input
                   value={houseName}
                   onChange={(e) => setHouseName(e.target.value)}
                   placeholder={t('createHousehold.householdNamePlaceholder')}
-                  className="w-full bg-muted/50 rounded-lg px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">{t('createHousehold.address')}</label>
-                <div className="glass rounded-lg flex items-center gap-3 px-3">
-                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <label className="nido-section-label mb-2 block">{t('createHousehold.address')}</label>
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 shrink-0 text-ink-3" />
                   <input
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder={t('createHousehold.addressPlaceholder')}
-                    className="w-full bg-transparent py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none"
+                      className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
-            </div>
-            <button
+              </NidoCard>
+              <NidoButton
               onClick={() => setStep(2)}
               disabled={!houseName.trim() && !address.trim()}
-              className="w-full gradient-primary rounded-xl py-3 text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full"
             >
               {t('common.next')} <ArrowRight className="h-4 w-4" />
-            </button>
+              </NidoButton>
           </motion.div>
         )}
 
         {/* Step 2: Rooms & Residents */}
         {setupMode === 'create' && step === 2 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="glass rounded-2xl p-5 space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-secondary/30 to-secondary/5 flex items-center justify-center mx-auto">
-                <DoorOpen className="h-7 w-7 text-foreground" />
+              <NidoCard className="space-y-5 p-5">
+                <div className="mx-auto flex h-20 w-20 rotate-[-4deg] items-center justify-center rounded-2xl border-[1.5px] border-primary bg-nido-sky text-4xl shadow-[3px_3px_0_var(--ink)]">
+                  <DoorOpen className="h-9 w-9" />
               </div>
-              <p className="text-sm text-center text-muted-foreground">{t('createHousehold.roomSetupDescription')}</p>
               <div className="space-y-3">
                 {rooms.map((room, i) => (
-                  <div key={i} className="glass rounded-xl p-3 space-y-3">
+                    <div key={i} className="rounded-2xl border-[1.5px] border-primary bg-muted p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs font-medium text-muted-foreground">{t('createHousehold.room', { index: i + 1 })}</span>
+                        <span className="nido-section-label">{t('createHousehold.room', { index: i + 1 })}</span>
                       {rooms.length > 1 && (
-                        <button onClick={() => removeRoom(i)} className="h-8 w-8 rounded-lg bg-muted/40 flex items-center justify-center">
-                          <X className="h-4 w-4 text-muted-foreground" />
+                          <button onClick={() => removeRoom(i)} className="flex h-8 w-8 items-center justify-center rounded-full border border-primary bg-card">
+                            <X className="h-4 w-4 text-ink-3" />
                         </button>
                       )}
                     </div>
@@ -252,18 +266,18 @@ export default function CreateHouseholdPage() {
                           value={room.name}
                           onChange={(e) => updateRoomName(i, e.target.value)}
                           placeholder={t('createHousehold.roomNamePlaceholder')}
-                          className="w-full bg-muted/50 rounded-lg px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">{t('createHousehold.minutesToClean')}</label>
+                          <label className="nido-section-label mb-2 block">{t('createHousehold.minutesToClean')}</label>
                         <input
                           type="number"
                           min="1"
                           max="240"
                           value={room.minutes}
                           onChange={(e) => updateRoomMinutes(i, e.target.value)}
-                          className="w-full bg-muted/50 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary [color-scheme:dark]"
+                            className="w-full px-4 py-3 text-sm"
                         />
                       </div>
                     </div>
@@ -272,23 +286,23 @@ export default function CreateHouseholdPage() {
               </div>
               <button
                 onClick={addRoom}
-                className="w-full glass rounded-xl py-3 text-sm font-medium text-muted-foreground flex items-center justify-center gap-2"
+                  className="nido-button-ghost flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold"
               >
                 <Plus className="h-4 w-4" /> {t('createHousehold.addRoom')}
               </button>
-            </div>
+              </NidoCard>
             {error && <p className="text-xs text-destructive text-center">{error}</p>}
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)} className="flex-1 glass rounded-xl py-3 text-sm font-medium flex items-center justify-center gap-2">
+                <NidoButton variant="ghost" onClick={() => setStep(1)} className="flex-1">
                 <ArrowLeft className="h-4 w-4" /> {t('common.back')}
-              </button>
-              <button
+                </NidoButton>
+                <NidoButton
                 onClick={handleCreateCollective}
                 disabled={loading}
-                className="flex-1 gradient-primary rounded-xl py-3 text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="flex-1"
               >
                 {loading ? t('createHousehold.creating') : <>{t('common.next')} <ArrowRight className="h-4 w-4" /></>}
-              </button>
+                </NidoButton>
             </div>
           </motion.div>
         )}
@@ -296,27 +310,27 @@ export default function CreateHouseholdPage() {
         {/* Step 3: Invite */}
         {setupMode === 'create' && step === 3 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-            <div className="glass rounded-2xl p-5 space-y-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-accent/30 to-accent/5 flex items-center justify-center mx-auto">
-                <Users className="h-7 w-7 text-foreground" />
+              <NidoCard className="space-y-5 p-5">
+                <div className="mx-auto flex h-20 w-20 rotate-[-4deg] items-center justify-center rounded-2xl border-[1.5px] border-primary bg-nido-butter text-4xl shadow-[3px_3px_0_var(--ink)]">
+                  <Users className="h-9 w-9" />
               </div>
 
-              <div className="bg-muted/30 rounded-xl p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">{t('createHousehold.shareCode')}</p>
+                <div className="rounded-2xl border-[1.5px] border-primary bg-muted p-4 text-center">
+                  <p className="nido-section-label mb-2">{t('createHousehold.shareCode')}</p>
                 <div className="flex items-center justify-center gap-2">
-                  <span className="font-mono text-lg font-bold tracking-widest text-primary">{createdCode}</span>
-                  <button onClick={handleCopy} className="h-8 w-8 rounded-lg glass flex items-center justify-center">
+                    <span className="font-mono text-2xl font-bold tracking-[0.22em] text-secondary">{createdCode}</span>
+                    <button onClick={handleCopy} className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-primary bg-card">
                     {copied
-                      ? <Check className="h-3.5 w-3.5 text-primary" />
-                      : <Copy className="h-3.5 w-3.5 text-muted-foreground" />}
+                        ? <Check className="h-4 w-4 text-secondary" />
+                        : <Copy className="h-4 w-4 text-ink-3" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">{t('createHousehold.inviteByEmail')}</span>
-                <div className="flex-1 h-px bg-border" />
+                <div className="flex items-center gap-3">
+                  <NidoDots className="flex-1" />
+                  <span className="nido-section-label">{t('createHousehold.inviteByEmail')}</span>
+                  <NidoDots className="flex-1" />
               </div>
 
               {invites.map((email, i) => (
@@ -326,11 +340,11 @@ export default function CreateHouseholdPage() {
                     value={email}
                     onChange={(e) => updateInvite(i, e.target.value)}
                     placeholder={t('createHousehold.roommateEmail', { index: i + 1 })}
-                    className="flex-1 bg-muted/50 rounded-lg px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      className="min-w-0 flex-1 px-4 py-3 text-sm placeholder:text-muted-foreground"
                   />
                   {invites.length > 1 && (
-                    <button onClick={() => removeInvite(i)} className="h-10 w-10 rounded-lg glass flex items-center justify-center">
-                      <X className="h-4 w-4 text-muted-foreground" />
+                      <button onClick={() => removeInvite(i)} className="flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-primary bg-card">
+                        <X className="h-4 w-4 text-ink-3" />
                     </button>
                   )}
                 </div>
@@ -338,22 +352,22 @@ export default function CreateHouseholdPage() {
 
               <button
                 onClick={addInvite}
-                className="w-full glass rounded-lg py-2 text-xs font-medium text-muted-foreground flex items-center justify-center gap-1"
+                  className="nido-button-ghost flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold"
               >
-                <Plus className="h-3 w-3" /> {t('createHousehold.addAnother')}
+                  <Plus className="h-4 w-4" /> {t('createHousehold.addAnother')}
               </button>
-            </div>
+              </NidoCard>
 
-            <button
+              <NidoButton
               onClick={handleSendInvites}
-              className="w-full gradient-primary rounded-xl py-3 text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2"
+                className="w-full"
             >
               {t('common.create')} <ArrowRight className="h-4 w-4" />
-            </button>
+              </NidoButton>
 
             <button
               onClick={() => navigate('/', { replace: true })}
-              className="w-full text-center text-xs text-muted-foreground"
+                className="w-full text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3"
             >
               {t('createHousehold.skipForNow')}
             </button>
@@ -362,11 +376,12 @@ export default function CreateHouseholdPage() {
 
         <button
           onClick={goBackToAuth}
-          className="w-full text-center text-xs text-muted-foreground"
+            className="w-full text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3"
         >
           {t('createHousehold.backToAuth')}
         </button>
       </motion.div>
+      </div>
     </div>
   );
 }

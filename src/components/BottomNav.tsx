@@ -1,17 +1,18 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, CheckSquare, Calendar, MessageCircle, Wallet, Trophy, Gamepad2 } from 'lucide-react';
+import { Home, CheckSquare, MessageCircle, Wallet, MoreHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { cn } from './ui/utils';
 
 const tabs = [
-  { labelKey: 'bottomNav.home', icon: Home, path: '/' },
+  { labelKey: 'bottomNav.home', icon: Home, path: '/', glyph: '🏠' },
   { labelKey: 'bottomNav.tasks', icon: CheckSquare, path: '/tasks' },
-  { labelKey: 'bottomNav.calendar', icon: Calendar, path: '/calendar' },
-  { labelKey: 'bottomNav.chat', icon: MessageCircle, path: '/chat' },
   { labelKey: 'bottomNav.economy', icon: Wallet, path: '/economy' },
-  { labelKey: 'bottomNav.board', icon: Trophy, path: '/leaderboard' },
-  { labelKey: 'bottomNav.games', icon: Gamepad2, path: '/games' },
+  { labelKey: 'bottomNav.chat', icon: MessageCircle, path: '/chat' },
+  { labelKey: 'bottomNav.more', icon: MoreHorizontal, path: '/more' },
 ];
+
+const morePaths = ['/more', '/calendar', '/leaderboard', '/games', '/profile'];
 
 export default function BottomNav() {
   const location = useLocation();
@@ -19,39 +20,39 @@ export default function BottomNav() {
   const { t } = useTranslation();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass-strong safe-bottom">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+    <nav className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-background via-background to-transparent px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-5">
+      <div className="nido-card mx-auto flex h-16 max-w-lg items-center justify-between rounded-full bg-card p-1">
         {tabs.map((tab) => {
           const isActive =
             tab.path === '/'
               ? location.pathname === '/'
-              : location.pathname.startsWith(tab.path);
+              : tab.path === '/more'
+                ? morePaths.some((path) => location.pathname.startsWith(path))
+                : location.pathname.startsWith(tab.path);
           return (
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="relative flex flex-col items-center gap-0.5 py-1 px-2 rounded-xl transition-colors"
+              className={cn(
+                'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-2 text-[9px] font-bold uppercase tracking-[0.08em] text-ink-3',
+                isActive && 'bg-primary text-primary-foreground',
+              )}
               aria-label={t(tab.labelKey)}
+              aria-current={isActive ? 'page' : undefined}
             >
               {isActive && (
-                <motion.div
+                <motion.span
                   layoutId="tab-indicator"
-                  className="absolute -top-1 w-6 h-1 rounded-full gradient-primary"
-                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  className="absolute -top-1 h-2 w-2 rounded-full border-[1.5px] border-primary bg-secondary"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                 />
               )}
-              <tab.icon
-                className={`h-5 w-5 transition-colors ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              />
-              <span
-                className={`text-[10px] font-medium transition-colors ${
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                {t(tab.labelKey)}
-              </span>
+              {tab.glyph ? (
+                <span className="text-base leading-none" aria-hidden="true">{tab.glyph}</span>
+              ) : (
+                <tab.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              <span className="max-w-full truncate">{t(tab.labelKey)}</span>
             </button>
           );
         })}

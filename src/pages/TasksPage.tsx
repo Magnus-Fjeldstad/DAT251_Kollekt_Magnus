@@ -30,12 +30,68 @@ import { useUser } from '../context/UserContext';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import { formatDate, formatDateTime, translateKey } from '../i18n/helpers';
 import type { Task, ShoppingItem, TaskCategory } from '../lib/types';
+import { NidoButton, NidoCard, NidoChip, NidoSection } from '../components/nido';
+import { cn } from '../components/ui/utils';
 
 const CATEGORIES: TaskCategory[] = ['CLEANING', 'VACUUMING', 'MOPPING', 'BATHROOM', 'KITCHEN', 'LAUNDRY', 'DISHES', 'TRASH', 'DUSTING', 'WINDOWS', 'OTHER'];
 const RECURRENCE_OPTIONS = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'] as const;
-const TASK_FILTERS = ['ALL', 'MINE', 'TODAY', 'DONE'] as const;
+const TASK_FILTERS = ['ALL', 'MINE', 'OPEN', 'DONE'] as const;
 
 type TaskFilter = (typeof TASK_FILTERS)[number];
+
+const categoryGlyph: Record<TaskCategory, string> = {
+  CLEANING: '🧽',
+  VACUUMING: '🧹',
+  MOPPING: '🪣',
+  BATHROOM: '🛁',
+  KITCHEN: '🍳',
+  LAUNDRY: '🧺',
+  DISHES: '🍽️',
+  TRASH: '🗑️',
+  DUSTING: '🪶',
+  WINDOWS: '🪟',
+  SHOPPING: '🛒',
+  OTHER: '✨',
+};
+
+function dateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function compactDueLabel(dueDate: string, todayLabel: string, tomorrowLabel: string) {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (dueDate === dateInputValue(today)) return todayLabel;
+  if (dueDate === dateInputValue(tomorrow)) return tomorrowLabel;
+
+  return new Date(`${dueDate}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'short',
+  });
+}
+
+function weekStrip() {
+  const today = new Date();
+  const monday = new Date(today);
+  const day = today.getDay() || 7;
+  monday.setDate(today.getDate() - day + 1);
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setDate(monday.getDate() + index);
+    return {
+      key: dateInputValue(date),
+      isoDate: dateInputValue(date),
+      day: date.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 1),
+      date: date.getDate(),
+      isToday: date.toDateString() === today.toDateString(),
+    };
+  });
+}
 
 function TaskEditor({
   title,
@@ -607,10 +663,9 @@ function TasksMain() {
 
   const filteredTasks = tasks
     .filter((task) => {
-      const today = new Date().toISOString().split('T')[0];
       if (filter === 'DONE') return task.completed;
       if (filter === 'MINE') return task.assignee === name && !task.completed;
-      if (filter === 'TODAY') return task.dueDate === today && !task.completed;
+      if (filter === 'OPEN') return !task.completed;
       return !task.completed;
     })
     .sort((firstTask, secondTask) => {
@@ -618,6 +673,18 @@ function TasksMain() {
       if (dueDateOrder !== 0) return dueDateOrder;
       return firstTask.id - secondTask.id;
     });
+
+  const filterCounts: Record<TaskFilter, number> = {
+    ALL: tasks.filter((task) => !task.completed).length,
+    MINE: tasks.filter((task) => task.assignee === name && !task.completed).length,
+    OPEN: tasks.filter((task) => !task.completed).length,
+    DONE: tasks.filter((task) => task.completed).length,
+  };
+  const weekDays = weekStrip();
+  const weekDates = new Set(weekDays.map((day) => day.isoDate));
+  const weekTasks = tasks.filter((task) => weekDates.has(task.dueDate));
+  const weekCompletedTasks = weekTasks.filter((task) => task.completed);
+  const completedDueDates = new Set(weekCompletedTasks.map((task) => task.dueDate));
 
   if (loading) {
     return (
@@ -633,31 +700,36 @@ function TasksMain() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4 pt-4"
+      className="space-y-5"
     >
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl font-bold">{t('tasks.title')}</h2>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="nido-section-label mb-1">What needs doing</div>
+          <h1 className="nido-title text-[3.25rem] leading-none">
+            The <em className="text-[var(--sky)]">chore</em> board
+          </h1>
+        </div>
         <button
           onClick={() => {
             if (tab === 'tasks') { resetForm(); setShowAdd(true); }
             else { setShowShoppingAdd(true); }
           }}
-          className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary bg-[var(--sky)] shadow-[3px_3px_0_var(--ink)]"
           aria-label={tab === 'tasks' ? t('tasks.addTask') : t('tasks.addSupply')}
         >
-          <Plus className="h-5 w-5 text-primary-foreground" />
+          <Plus className="h-6 w-6 text-primary-foreground" />
         </button>
       </div>
 
-      <div className="flex gap-1 glass rounded-xl p-1">
+      <div className="flex gap-1 rounded-full border-[1.5px] border-primary bg-card p-1">
         {(['tasks', 'shopping'] as const).map((value) => (
           <button
             key={value}
             onClick={() => setTab(value)}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+            className={`flex-1 rounded-full px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.1em] transition-all ${
               tab === value
-                ? 'gradient-primary text-primary-foreground'
-                : 'text-muted-foreground'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-ink-3'
             }`}
           >
             {t(`tasks.tabs.${value}`)}
@@ -701,21 +773,46 @@ function TasksMain() {
 
       {tab === 'tasks' ? (
         <>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {TASK_FILTERS.map((value) => (
               <button
                 key={value}
                 onClick={() => setFilter(value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full border-[1.5px] border-primary px-5 py-3 font-mono text-xs font-bold uppercase tracking-[0.1em] transition-colors ${
                   value === filter
-                    ? 'gradient-primary text-primary-foreground'
-                    : 'glass text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-transparent text-primary'
                 }`}
               >
-                {t(`tasks.filters.${value}`)}
+                {t(`tasks.filters.${value}`, { defaultValue: value.toLowerCase() })}
+                <span className="ml-2 opacity-60">{filterCounts[value]}</span>
               </button>
             ))}
           </div>
+
+          <section>
+            <NidoSection label="This week" right={`${weekCompletedTasks.length} of ${weekTasks.length} done`} />
+            <div className="grid grid-cols-7 gap-1.5">
+              {weekDays.map((day) => {
+                const isDone = completedDueDates.has(day.isoDate);
+                return (
+                  <div
+                    key={day.key}
+                    className={cn(
+                      'relative flex aspect-square flex-col items-center justify-center rounded-xl border-[1.5px] border-primary bg-transparent',
+                      isDone && 'bg-coral-soft',
+                      day.isToday && 'border-[var(--sky)]',
+                    )}
+                  >
+                    {day.isToday && <span className="absolute -right-1 -top-1 h-4 w-4 rounded-full border-[1.5px] border-primary bg-[var(--sky)]" />}
+                    <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">{day.day}</span>
+                    <span className="font-display text-2xl leading-none">{day.date}</span>
+                    {isDone && <span className="absolute bottom-1 text-[10px]">✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
 
           <AnimatePresence>
             {showAdd && !editingId && (
@@ -749,11 +846,23 @@ function TasksMain() {
             )}
           </AnimatePresence>
 
-          <div className="space-y-2">
+          <section>
+            <NidoSection label={`${filteredTasks.length} tasks`} />
+            <div className="space-y-3">
             {filteredTasks.map((task, index) => {
               const isOverdue = isOverdueTask(task);
               const isPenalized = (task.penaltyXp ?? 0) < 0;
               const taskIsPending = pendingTaskIds.has(task.id);
+              const dueLabel = compactDueLabel(
+                task.dueDate,
+                t('tasks.due.today'),
+                t('tasks.due.tomorrow'),
+              );
+              const formattedDueDate = formatDate(task.dueDate, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+              });
 
               return (
                 <Fragment key={task.id}>
@@ -761,77 +870,66 @@ function TasksMain() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.04 }}
-                    className={`glass rounded-xl p-3.5 ${task.completed ? 'opacity-50' : ''}`}
+                    className={cn(
+                      'rounded-[1.65rem] border-[1.5px] border-primary bg-card p-4 shadow-[3px_4px_0_var(--ink)]',
+                      task.completed && 'bg-muted opacity-70 shadow-none',
+                    )}
                   >
                     <div
-                      className="flex items-center gap-3 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-4"
                       onClick={() => {
                         if (taskIsPending) return;
                         void handlePrimaryToggle(task);
                       }}
                     >
                       {task.completed ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary bg-[var(--sky)] text-xl text-primary-foreground">
+                          ✓
+                        </span>
                       ) : (
-                        <Circle className="h-5 w-5 text-muted-foreground shrink-0" />
+                        <span className="h-10 w-10 shrink-0 rounded-full border-[1.5px] border-primary bg-transparent" />
                       )}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-primary bg-muted text-xl">
+                        {categoryGlyph[task.category]}
+                      </div>
+                      <div className="min-w-0 flex-1">
                         <p
-                          className={`text-sm font-medium ${task.completed ? 'line-through' : ''}`}
+                          className={`truncate text-lg font-semibold leading-tight ${task.completed ? 'line-through text-ink-3' : ''}`}
                         >
                           {task.title}
                         </p>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <span className="text-[10px] text-muted-foreground">
-                            {task.assignee} • {formatDate(task.dueDate)}
+                        <div className="mt-1 flex min-w-0 items-center gap-1.5 overflow-hidden">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] text-secondary-foreground">
+                            {(task.assignee[0] ?? '?').toUpperCase()}
                           </span>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                            {translateKey('common.taskCategories', task.category)}
+                          <span className="truncate font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+                            {task.assignee} · {translateKey('common.taskCategories', task.category)}
                           </span>
-                          {task.recurrenceRule && task.recurrenceRule !== 'NONE' && (
-                            <span className="text-[10px] text-accent flex items-center gap-0.5">
-                              <RotateCcw className="h-2.5 w-2.5" />
-                              {translateKey('common.recurrence', task.recurrenceRule)}
-                            </span>
-                          )}
-                          {!task.completed && !isOverdue && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                              {t('common.active')}
-                            </span>
-                          )}
-                          {isOverdue && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/20 text-destructive font-medium">
-                              {t('tasks.overdue')}
-                            </span>
-                          )}
-                          {isPenalized && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
-                              {t('tasks.penaltyApplied')}
-                            </span>
-                          )}
-                          {task.assignmentReason === 'LATE' && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary/20 text-secondary font-medium">
-                              {translateKey(
-                                'common.taskAssignmentReasons',
-                                task.assignmentReason,
-                              )}
-                            </span>
-                          )}
                         </div>
                       </div>
-                      <span className="text-[10px] font-medium text-primary shrink-0">
-                        +{task.xp} XP
-                      </span>
+                      <NidoChip className="border-[var(--sky)] text-[var(--sky)]">+{task.xp}XP</NidoChip>
                     </div>
 
-                    <div className="flex items-center gap-1 mt-2 ml-8">
+                    <div className="mt-3 flex flex-wrap items-center gap-1 pl-16">
+                      <NidoChip className={cn(isOverdue && 'border-destructive text-destructive')}>
+                        <Clock className="h-3 w-3" />
+                        {t('tasks.due.label')}: {dueLabel} · {formattedDueDate}
+                      </NidoChip>
+                      {task.recurrenceRule && task.recurrenceRule !== 'NONE' && (
+                        <NidoChip>
+                          <RotateCcw className="h-3 w-3" />
+                          {translateKey('common.recurrence', task.recurrenceRule)}
+                        </NidoChip>
+                      )}
+                      {isOverdue && <NidoChip className="border-destructive text-destructive">{t('tasks.overdue')}</NidoChip>}
+                      {isPenalized && <NidoChip tone="coral">{t('tasks.penaltyApplied')}</NidoChip>}
                       {!task.completed && isOverdue && !isPenalized && (
                         <button
                           onClick={() => {
                             void markLate(task);
                           }}
                           disabled={taskIsPending}
-                          className="h-7 px-2 rounded-lg glass text-[10px] font-medium text-secondary flex items-center gap-1 disabled:opacity-60"
+                          className="nido-chip disabled:opacity-60"
                         >
                           <Clock className="h-3 w-3" />
                           {t('tasks.completeLate')}
@@ -843,7 +941,7 @@ function TasksMain() {
                             void completeMissedTask(task);
                           }}
                           disabled={taskIsPending}
-                          className="h-7 px-2 rounded-lg glass text-[10px] font-medium text-secondary flex items-center gap-1 disabled:opacity-60"
+                          className="nido-chip disabled:opacity-60"
                         >
                           <Clock className="h-3 w-3" />
                           {t('tasks.regretMissed')}
@@ -851,25 +949,25 @@ function TasksMain() {
                       )}
                       <button
                         onClick={() => startEdit(task)}
-                        className="h-7 w-7 rounded-lg glass flex items-center justify-center"
+                        className="nido-chip"
                         aria-label={t('tasks.editTaskAria')}
                       >
-                        <Edit3 className="h-3 w-3 text-muted-foreground" />
+                        <Edit3 className="h-3 w-3" />
                       </button>
                       <button
                         onClick={() => {
                           void deleteTask(task.id);
                         }}
-                        className="h-7 w-7 rounded-lg glass flex items-center justify-center"
+                        className="nido-chip border-destructive text-destructive"
                         aria-label={t('tasks.deleteTaskAria')}
                       >
-                        <Trash2 className="h-3 w-3 text-destructive" />
+                        <Trash2 className="h-3 w-3" />
                       </button>
                       <button
                         onClick={() =>
                           setCommentingId(commentingId === task.id ? null : task.id)
                         }
-                        className="h-7 px-2 rounded-lg glass text-[10px] font-medium text-muted-foreground flex items-center gap-1"
+                        className="nido-chip"
                         aria-label={t('tasks.toggleComments')}
                       >
                         <MessageSquare className="h-3 w-3" />
@@ -882,14 +980,14 @@ function TasksMain() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="overflow-hidden mt-2 ml-8 space-y-2"
+                          className="mt-3 space-y-2 overflow-hidden pl-16"
                         >
                           {task.feedbacks.length > 0 && (
                             <div className="space-y-1.5">
                               {task.feedbacks.map((feedback) => (
                                 <div
                                   key={feedback.id}
-                                  className="bg-muted/30 rounded-lg px-2.5 py-2 space-y-1"
+                                  className="rounded-xl border border-primary/30 bg-muted px-3 py-2"
                                 >
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-[10px] font-semibold text-primary">
@@ -925,7 +1023,7 @@ function TasksMain() {
                               value={commentText}
                               onChange={(event) => setCommentText(event.target.value)}
                               placeholder={t('tasks.feedbackPlaceholder')}
-                              className="flex-1 bg-muted/50 rounded-lg px-2 py-1.5 text-[11px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              className="flex-1 px-3 py-2 text-xs placeholder:text-muted-foreground"
                               onKeyDown={(event) =>
                                 event.key === 'Enter' && void addFeedback(task.id)
                               }
@@ -934,7 +1032,7 @@ function TasksMain() {
                               onClick={() => {
                                 void addFeedback(task.id);
                               }}
-                              className="px-2 rounded-lg gradient-primary text-[10px] font-medium text-primary-foreground"
+                              className="nido-button px-4 py-2 text-xs"
                             >
                               {t('common.send')}
                             </button>
@@ -945,8 +1043,8 @@ function TasksMain() {
                               onClick={() => setFeedbackAnonymous((value) => !value)}
                               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${
                                 feedbackAnonymous
-                                  ? 'bg-primary/20 text-primary'
-                                  : 'glass text-muted-foreground'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'nido-card-flat text-ink-3'
                               }`}
                             >
                               <EyeOff className="h-3 w-3" />
@@ -958,8 +1056,8 @@ function TasksMain() {
                               onClick={() => feedbackImageRef.current?.click()}
                               className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium transition-colors ${
                                 feedbackImage
-                                  ? 'bg-primary/20 text-primary'
-                                  : 'glass text-muted-foreground'
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'nido-card-flat text-ink-3'
                               }`}
                             >
                               <Image className="h-3 w-3" />
@@ -1022,7 +1120,8 @@ function TasksMain() {
                 </Fragment>
               );
             })}
-          </div>
+            </div>
+          </section>
         </>
       ) : (
         <div className="space-y-3">

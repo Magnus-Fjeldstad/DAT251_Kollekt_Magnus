@@ -129,7 +129,8 @@
     "chat": "Chat",
     "economy": "Economy",
     "board": "Board",
-    "games": "Games"
+    "games": "Games",
+    "more": "More"
   },
   "auth": {
     "loginTab": "Log In",
@@ -212,9 +213,15 @@
     "filters": {
       "ALL": "Tasks",
       "MINE": "Mine",
+      "OPEN": "Open",
       "TODAY": "Today",
       "INCOMPLETE": "Incomplete",
       "DONE": "Completed"
+    },
+    "due": {
+      "label": "Due",
+      "today": "Today",
+      "tomorrow": "Tomorrow"
     },
     "newTask": "New Task",
     "editTask": "Edit Task",
@@ -495,6 +502,48 @@
       "challenge": "Challenge",
       "toast": "Toast",
       "never": "Never have I ever"
+    }
+  },
+  "more": {
+    "eyebrow": "Everything else",
+    "titlePrefix": "More",
+    "titleEmphasis": "nest",
+    "titleSuffix": "stuff",
+    "you": "You",
+    "tiles": {
+      "calendar": {
+        "label": "Calendar",
+        "sub": "Events this week"
+      },
+      "houseBoard": {
+        "label": "House board",
+        "sub": "Notes pinned"
+      },
+      "games": {
+        "label": "Games",
+        "sub": "Decks"
+      },
+      "profile": {
+        "label": "Profile",
+        "sub": "{{name}} · account"
+      },
+      "notifications": {
+        "label": "Notifications",
+        "sub_one": "{{count}} unread",
+        "sub_other": "{{count}} unread"
+      }
+    },
+    "house": {
+      "title": "House",
+      "address": "Birkebeinerveien 12",
+      "household": "Household",
+      "householdCode": "{{code}} · household",
+      "inviteRoommate": "Invite a roommate",
+      "code": "Code: {{code}}",
+      "pending": "pending",
+      "houseRules": "House rules",
+      "agreements": "{{count}} agreements",
+      "signOut": "Sign out"
     }
   },
   "profile": {

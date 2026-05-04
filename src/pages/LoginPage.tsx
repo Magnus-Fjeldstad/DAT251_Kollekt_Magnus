@@ -7,6 +7,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 import { api, getUserMessage, setAccessToken, setRefreshToken } from '../lib/api';
 import { useUser } from '../context/UserContext';
 import type { AuthResponse, AppUser, Invitation } from '../lib/types';
+import { NidoButton, NidoCard, NidoChip } from '../components/nido';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -67,29 +68,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-background flex flex-col items-center justify-center px-6">
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
+    <div className="min-h-screen bg-background px-5 py-6 text-foreground">
+      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-lg flex-col">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-primary bg-[var(--sky)] shadow-[2px_2px_0_var(--ink)]">
+              <img src="/favicon.png" alt="" className="h-7 w-7 rounded-full object-cover" />
+            </span>
+            <span className="font-display text-3xl italic leading-none">Kollekt</span>
+          </div>
+          <LanguageSwitcher />
+        </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-sm space-y-8"
+          className="flex flex-1 flex-col justify-between gap-8"
       >
-        {/* Logo */}
-        <div className="text-center">
-          <h1 className="font-display text-4xl font-bold text-gradient">Kollekt</h1>
-          <p className="text-sm text-muted-foreground mt-2">{t('app.tagline')}</p>
+          <section>
+            <NidoChip className="mb-4">01 / welcome</NidoChip>
+            <h1 className="nido-title text-[3.7rem] leading-[0.95]">
+              Coliving, made <em className="text-secondary">warm</em>.
+            </h1>
+            <p className="mt-4 text-base leading-6 text-ink-2">
+              {t('app.tagline')}. Tasks, money, chat and house rhythm in one shared pocket.
+            </p>
+          </section>
+
+          <div className="flex justify-center py-2">
+            <div className="rotate-[-6deg] text-[9rem] leading-none drop-shadow-[4px_4px_0_var(--ink)]">
+              🪺
+            </div>
         </div>
 
-        {/* Mode tabs */}
-        <div className="flex gap-1 glass rounded-xl p-1">
+          <section className="space-y-5">
+            <div className="flex gap-1 rounded-full border-[1.5px] border-primary bg-card p-1 shadow-[3px_3px_0_var(--ink)]">
           {(['login', 'register'] as const).map((m) => (
             <button
               key={m}
               onClick={() => { setMode(m); setError(''); }}
-              className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                mode === m ? 'gradient-primary text-primary-foreground' : 'text-muted-foreground'
+                    className={`flex-1 rounded-full px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.1em] transition-all ${
+                mode === m ? 'bg-primary text-primary-foreground' : 'text-ink-3'
               }`}
             >
               {m === 'login' ? t('auth.loginTab') : t('auth.signUpTab')}
@@ -97,24 +116,25 @@ export default function LoginPage() {
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+            <NidoCard className="p-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
           <AnimatePresence mode="wait">
             <motion.div
               key="auth"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-4"
+                    className="space-y-3"
             >
               {mode === 'register' && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                  <div className="glass rounded-xl flex items-center gap-3 px-4">
-                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div className="flex items-center gap-3">
+                          <User className="h-4 w-4 shrink-0 text-ink-3" />
                     <input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t('auth.fullName')}
-                      className="w-full bg-transparent py-3 text-sm placeholder:text-muted-foreground focus:outline-none"
+                            className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                       required
                     />
                   </div>
@@ -122,39 +142,39 @@ export default function LoginPage() {
               )}
 
               {mode === 'login' ? (
-                <div className="glass rounded-xl flex items-center gap-3 px-4">
-                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <User className="h-4 w-4 shrink-0 text-ink-3" />
                   <input
                     type="text"
                     value={loginName}
                     onChange={(e) => setLoginName(e.target.value)}
                     placeholder={t('auth.username')}
-                    className="w-full bg-transparent py-3 text-sm placeholder:text-muted-foreground focus:outline-none"
+                        className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                     required
                   />
                 </div>
               ) : (
-                <div className="glass rounded-xl flex items-center gap-3 px-4">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-4 w-4 shrink-0 text-ink-3" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t('auth.emailAddress')}
-                    className="w-full bg-transparent py-3 text-sm placeholder:text-muted-foreground focus:outline-none"
+                        className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                     required
                   />
                 </div>
               )}
 
-              <div className="glass rounded-xl flex items-center gap-3 px-4">
-                <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex items-center gap-3">
+                    <Lock className="h-4 w-4 shrink-0 text-ink-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={t('auth.password')}
-                  className="w-full bg-transparent py-3 text-sm placeholder:text-muted-foreground focus:outline-none"
+                      className="w-full px-4 py-3 text-sm placeholder:text-muted-foreground"
                   required
                   minLength={8}
                 />
@@ -162,23 +182,24 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary bg-muted"
                 >
                   {showPassword
-                    ? <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    : <Eye className="h-4 w-4 text-muted-foreground" />}
+                        ? <EyeOff className="h-4 w-4 text-ink-3" />
+                        : <Eye className="h-4 w-4 text-ink-3" />}
                 </button>
               </div>
             </motion.div>
           </AnimatePresence>
 
           {error && (
-            <p className="text-xs text-destructive text-center">{error}</p>
+                  <p className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-center text-xs text-destructive">{error}</p>
           )}
 
-          <button
+                <NidoButton
             type="submit"
             disabled={loading}
-            className="w-full gradient-primary rounded-xl py-3 text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-60"
+                  className="w-full"
           >
             {loading ? t('auth.pleaseWait') : (
               <>
@@ -186,13 +207,16 @@ export default function LoginPage() {
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
-          </button>
-        </form>
+                </NidoButton>
+              </form>
+            </NidoCard>
 
-        <p className="text-center text-xs text-muted-foreground">
+            <p className="px-4 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
           {t('auth.inviteHint')}
         </p>
+          </section>
       </motion.div>
+      </div>
     </div>
   );
 }

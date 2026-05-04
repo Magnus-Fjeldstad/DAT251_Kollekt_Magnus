@@ -1,39 +1,67 @@
 import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { CheckSquare, Calendar, Wallet, Zap, ShoppingCart } from 'lucide-react';
+import { Calendar, CheckSquare, ShoppingCart, Wallet, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { useUser } from '../context/UserContext';
 import { formatCurrency, formatDate, formatTime, translateKey } from '../i18n/helpers';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import type { DashboardResponse } from '../lib/types';
+import {
+  NidoAvatar,
+  NidoButton,
+  NidoCard,
+  NidoChip,
+  NidoDots,
+  NidoEmpty,
+  NidoPage,
+  NidoProgress,
+  NidoSection,
+} from '../components/nido';
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.07 } },
-};
-const item = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0, 0, 0.2, 1] as const } },
-};
-
-function XpProgress({ xp, label }: { xp: number; label: string }) {
-  const xpPerLevel = 200;
-  const progress = Math.min((xp % xpPerLevel) / xpPerLevel * 100, 100);
+function DashboardSkeleton() {
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-        <div className="h-full gradient-primary rounded-full transition-all" style={{ width: `${progress}%` }} />
-      </div>
-      <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>
+    <div className="space-y-4 pt-2">
+      {[80, 180, 116, 116].map((height, index) => (
+        <div key={index} className="nido-card animate-pulse bg-card" style={{ height }} />
+      ))}
     </div>
+  );
+}
+
+function RowCard({
+  icon,
+  title,
+  meta,
+  right,
+  onClick,
+}: {
+  icon: ReactNode;
+  title: string;
+  meta: string;
+  right?: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button onClick={onClick} className="nido-card-flat w-full bg-card p-3 text-left shadow-[2px_2px_0_var(--ink)]">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-primary bg-muted">
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{title}</p>
+          <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[0.08em] text-ink-3">{meta}</p>
+        </div>
+        {right}
+      </div>
+    </button>
   );
 }
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { t: translate } = useTranslation();
+  const { t } = useTranslation();
   const { currentUser } = useUser();
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
@@ -53,180 +81,157 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!currentUser) return;
-    const disconnect = connectCollectiveRealtime(
-      currentUser.name,
-      (event) => {
-        if (event.type === 'TASK_UPDATED' || event.type === 'EXPENSE_CREATED' || event.type === 'EVENT_CREATED') {
-          fetchDashboard();
-        }
-        if (event.type === 'MEMBER_ONLINE' || event.type === 'MEMBER_OFFLINE') {
-          const count = (event.payload as { count?: number })?.count;
-          if (count !== undefined) setOnlineCount(count);
-        }
-      },
-    );
+    const disconnect = connectCollectiveRealtime(currentUser.name, (event) => {
+      if (event.type === 'TASK_UPDATED' || event.type === 'EXPENSE_CREATED' || event.type === 'EVENT_CREATED') {
+        fetchDashboard();
+      }
+      if (event.type === 'MEMBER_ONLINE' || event.type === 'MEMBER_OFFLINE') {
+        const count = (event.payload as { count?: number })?.count;
+        if (count !== undefined) setOnlineCount(count);
+      }
+    });
     return disconnect;
   }, [currentUser]);
 
-  if (loading || !data) {
-    return (
-      <div className="space-y-4 pt-4 animate-pulse">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="glass rounded-2xl h-24" />
-        ))}
-      </div>
-    );
-  }
+  if (loading || !data) return <DashboardSkeleton />;
 
-  const xpLabel = `${data.currentUserXp % 200}/200 XP`;
+  const xpPerLevel = 200;
+  const currentXpInLevel = data.currentUserXp % xpPerLevel;
+  const nextTask = data.upcomingTasks[0];
 
   return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-5 pt-4">
-      {/* Welcome */}
-      <motion.div variants={item}>
-        <p className="text-muted-foreground text-sm">{translate('dashboard.welcomeBack')} 👋</p>
-        <h2 className="font-display text-2xl font-bold mt-1">{translate('dashboard.householdTitle')}</h2>
-      </motion.div>
+    <NidoPage>
+      <section>
+        <div className="nido-section-label mb-1">{t('dashboard.welcomeBack')}</div>
+        <h1 className="nido-title text-[2.75rem]">
+          {t('dashboard.householdTitle')}{' '}
+          <em className="text-secondary">{currentUser?.name}</em>
+        </h1>
+      </section>
 
-      {/* XP / Level card */}
-      <motion.div variants={item} className="glass rounded-2xl p-4 glow-primary">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center shrink-0">
-            <span className="font-display text-lg font-bold text-primary-foreground">
-              {currentUser?.name[0].toUpperCase()}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-sm">{translate('dashboard.level', { level: data.currentUserLevel })}</p>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
-                {translate('dashboard.rank', { rank: data.currentUserRank })}
-              </span>
+      <NidoCard className="overflow-hidden p-0">
+        <div className="bg-primary px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-primary-foreground">
+          House · {currentUser?.collectiveCode ?? t('app.name')} · live
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-4">
+            <NidoAvatar name={currentUser?.name} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-display text-3xl leading-none">
+                  {t('dashboard.level', { level: data.currentUserLevel })}
+                </span>
+                <NidoChip tone="coral">{t('dashboard.rank', { rank: data.currentUserRank })}</NidoChip>
+              </div>
+              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-3">
+                {currentXpInLevel} / {xpPerLevel} XP
+              </p>
+              <NidoProgress className="mt-3" value={currentXpInLevel} max={xpPerLevel} />
             </div>
-            <XpProgress xp={data.currentUserXp} label={xpLabel} />
+          </div>
+
+          <NidoDots className="my-4" />
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: t('dashboard.stats.tasksDone'), value: data.completedTasksCount.toString(), icon: CheckSquare },
+              { label: t('dashboard.stats.balance'), value: formatCurrency(data.currentUserBalance), icon: Wallet },
+              { label: t('dashboard.stats.xpEarned'), value: data.currentUserXp.toString(), icon: Zap },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-primary bg-muted p-3">
+                <stat.icon className="mb-2 h-4 w-4 text-ink-3" aria-hidden="true" />
+                <p className="font-display text-2xl leading-none">{stat.value}</p>
+                <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">{stat.label}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { label: translate('dashboard.stats.tasksDone'), value: data.completedTasksCount.toString(), icon: CheckSquare },
-            { label: translate('dashboard.stats.balance'), value: formatCurrency(data.currentUserBalance), icon: Wallet },
-            { label: translate('dashboard.stats.xpEarned'), value: data.currentUserXp.toString(), icon: Zap },
-          ].map((s) => (
-            <div key={s.label} className="bg-background/40 rounded-xl p-2.5 text-center">
-              <s.icon className="h-3.5 w-3.5 mx-auto mb-1 text-muted-foreground" />
-              <p className="font-display font-bold text-base">{s.value}</p>
-              <p className="text-muted-foreground text-[10px]">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+      </NidoCard>
 
-      {/* Real-time indicator */}
-      <motion.div variants={item} className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-        <p className="text-[10px] text-muted-foreground">
-          {translate('common.live')} • {onlineCount > 0 ? translate('dashboard.onlineRoommates', { count: onlineCount }) : translate('common.connecting')}
+      <div className="flex items-center gap-2 px-1">
+        <span className="h-2.5 w-2.5 rounded-full bg-[hsl(137_48%_52%)] shadow-[0_0_0_5px_rgba(86,194,113,0.18)]" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-2">
+          {t('common.live')} · {onlineCount > 0 ? t('dashboard.onlineRoommates', { count: onlineCount }) : t('common.connecting')}
         </p>
-      </motion.div>
+      </div>
 
-      {/* Upcoming tasks */}
-      <motion.div variants={item}>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm text-muted-foreground">{translate('dashboard.upcomingTasks')}</h3>
-          <button onClick={() => navigate('/tasks')} className="text-xs text-primary font-medium">{translate('common.seeAll')}</button>
-        </div>
+      {nextTask && (
+        <section>
+          <NidoSection label={t('dashboard.upcomingTasks')} right={<button onClick={() => navigate('/tasks')}>{t('common.seeAll')}</button>} />
+          <NidoCard tone="soft" className="relative overflow-hidden p-4">
+            <CheckSquare className="absolute -right-4 -top-6 h-28 w-28 rotate-12 text-primary/10" aria-hidden="true" />
+            <div className="relative flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary bg-card">
+                <CheckSquare className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-3xl leading-tight">{nextTask.title}</h2>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <NidoChip>{nextTask.assignee}</NidoChip>
+                  <NidoChip>{formatDate(nextTask.dueDate)}</NidoChip>
+                  <NidoChip tone="ink">{t('dashboard.xpValue', { xp: nextTask.xp })}</NidoChip>
+                </div>
+              </div>
+            </div>
+          </NidoCard>
+        </section>
+      )}
+
+      <section>
+        <NidoSection label={t('dashboard.shoppingList')} right={<button onClick={() => navigate('/tasks?tab=shopping')}>{t('common.seeAll')}</button>} />
         <div className="space-y-2">
-          {data.upcomingTasks.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-3">{translate('dashboard.noUpcomingTasks')} 🎉</p>
-          )}
-          {data.upcomingTasks.slice(0, 5).map((task) => (
-            <button key={task.id} onClick={() => navigate('/tasks')} className="glass rounded-xl p-3 flex items-center gap-3 w-full text-left">
-              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{task.title}</p>
-                <p className="text-[10px] text-muted-foreground">{task.assignee} • {formatDate(task.dueDate)}</p>
-              </div>
-              <span className="text-[10px] font-medium text-primary">{translate('dashboard.xpValue', { xp: task.xp })}</span>
-            </button>
+          {data.pendingShoppingItems.length === 0 && <NidoEmpty>{t('dashboard.noShoppingItems')}</NidoEmpty>}
+          {data.pendingShoppingItems.slice(0, 3).map((item) => (
+            <RowCard
+              key={item.id}
+              icon={<ShoppingCart className="h-5 w-5" aria-hidden="true" />}
+              title={item.item}
+              meta={t('dashboard.addedBy', { name: item.addedBy })}
+              onClick={() => navigate('/tasks?tab=shopping')}
+            />
           ))}
         </div>
-      </motion.div>
+      </section>
 
-      {/* Shopping list */}
-      <motion.div variants={item}>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm text-muted-foreground">{translate('dashboard.shoppingList')}</h3>
-          <button onClick={() => navigate('/tasks?tab=shopping')} className="text-xs text-primary font-medium">{translate('common.seeAll')}</button>
-        </div>
-        <div className="space-y-2">
-          {data.pendingShoppingItems.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-3">{translate('dashboard.noShoppingItems')}</p>
-          )}
-          {data.pendingShoppingItems.slice(0, 3).map((s) => (
-            <button key={s.id} onClick={() => navigate('/tasks?tab=shopping')} className="glass rounded-xl p-3 flex items-center gap-3 w-full text-left">
-              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{s.item}</p>
-                <p className="text-[10px] text-muted-foreground">{translate('dashboard.addedBy', { name: s.addedBy })}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </motion.div>
+      <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
+        <section>
+          <NidoSection label={t('dashboard.upcomingEvents')} />
+          <div className="space-y-2">
+            {data.upcomingEvents.length === 0 && <NidoEmpty>{t('dashboard.noUpcomingEvents')}</NidoEmpty>}
+            {data.upcomingEvents.slice(0, 3).map((event) => (
+              <RowCard
+                key={event.id}
+                icon={<Calendar className="h-5 w-5" aria-hidden="true" />}
+                title={event.title}
+                meta={`${formatDate(event.date)} ${formatTime(event.time)}`}
+                right={<NidoChip>{translateKey('common.eventTypes', event.type)}</NidoChip>}
+                onClick={() => navigate('/calendar')}
+              />
+            ))}
+          </div>
+        </section>
 
-      {/* Upcoming events */}
-      <motion.div variants={item}>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm text-muted-foreground">{translate('dashboard.upcomingEvents')}</h3>
-          <button onClick={() => navigate('/calendar')} className="text-xs text-primary font-medium">{translate('common.seeAll')}</button>
-        </div>
-        <div className="space-y-2">
-          {data.upcomingEvents.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-3">{translate('dashboard.noUpcomingEvents')}</p>
-          )}
-          {data.upcomingEvents.slice(0, 3).map((e) => (
-            <button key={e.id} onClick={() => navigate('/calendar')} className="glass rounded-xl p-3 flex items-center gap-3 w-full text-left">
-              <div className="h-8 w-8 rounded-lg bg-accent/20 flex items-center justify-center shrink-0">
-                <Calendar className="h-4 w-4 text-accent" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{e.title}</p>
-                <p className="text-[10px] text-muted-foreground">{formatDate(e.date)} {formatTime(e.time)}</p>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{translateKey('common.eventTypes', e.type)}</span>
-            </button>
-          ))}
-        </div>
-      </motion.div>
+        <section>
+          <NidoSection label={t('dashboard.recentExpenses')} />
+          <div className="space-y-2">
+            {data.recentExpenses.length === 0 && <NidoEmpty>{t('dashboard.noRecentExpenses')}</NidoEmpty>}
+            {data.recentExpenses.slice(0, 3).map((expense) => (
+              <RowCard
+                key={expense.id}
+                icon={<Wallet className="h-5 w-5" aria-hidden="true" />}
+                title={expense.description}
+                meta={`${t('dashboard.paidBy', { name: expense.paidBy })} · ${formatDate(expense.date)}`}
+                right={<span className="font-display text-2xl">{formatCurrency(expense.amount)}</span>}
+                onClick={() => navigate('/economy')}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
 
-      {/* Recent expenses */}
-      <motion.div variants={item}>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-sm text-muted-foreground">{translate('dashboard.recentExpenses')}</h3>
-          <button onClick={() => navigate('/economy')} className="text-xs text-primary font-medium">{translate('common.seeAll')}</button>
-        </div>
-        <div className="space-y-2">
-          {data.recentExpenses.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-3">{translate('dashboard.noRecentExpenses')}</p>
-          )}
-          {data.recentExpenses.slice(0, 3).map((e) => (
-            <button key={e.id} onClick={() => navigate('/economy')} className="glass rounded-xl p-3 flex items-center gap-3 w-full text-left">
-              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                <Wallet className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{e.description}</p>
-                <p className="text-[10px] text-muted-foreground">{translate('dashboard.paidBy', { name: e.paidBy })} • {formatDate(e.date)}</p>
-              </div>
-              <p className="text-sm font-bold">{formatCurrency(e.amount)}</p>
-            </button>
-          ))}
-        </div>
-      </motion.div>
-    </motion.div>
+      <NidoButton className="w-full" variant="paper" onClick={() => navigate('/tasks')}>
+        {t('common.seeAll')}
+      </NidoButton>
+    </NidoPage>
   );
 }

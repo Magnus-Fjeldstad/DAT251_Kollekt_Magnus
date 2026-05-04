@@ -11,5 +11,7 @@ backend/bin/
 .idea/
 .vscode/
 
+design_handoff_nido/
+
 Ideas.md
 Tasks.md
