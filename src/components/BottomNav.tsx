@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, CheckSquare, MessageCircle, Wallet, MoreHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,11 +8,11 @@ import { useUser } from '../context/UserContext';
 import { getUnreadChatNotifications } from '../lib/notifications';
 
 const tabs = [
-  { labelKey: 'bottomNav.home', icon: Home, path: '/', glyph: '🏠' },
-  { labelKey: 'bottomNav.tasks', icon: CheckSquare, path: '/tasks' },
-  { labelKey: 'bottomNav.economy', icon: Wallet, path: '/economy' },
-  { labelKey: 'bottomNav.chat', icon: MessageCircle, path: '/chat' },
-  { labelKey: 'bottomNav.more', icon: MoreHorizontal, path: '/more' },
+  { labelKey: 'bottomNav.home', icon: Home, path: '/', glyph: '🏠', prefetch: () => import('../pages/DashboardPage') },
+  { labelKey: 'bottomNav.tasks', icon: CheckSquare, path: '/tasks', prefetch: () => import('../pages/TasksPage') },
+  { labelKey: 'bottomNav.economy', icon: Wallet, path: '/economy', prefetch: () => import('../pages/EconomyPage') },
+  { labelKey: 'bottomNav.chat', icon: MessageCircle, path: '/chat', prefetch: () => import('../pages/ChatPage') },
+  { labelKey: 'bottomNav.more', icon: MoreHorizontal, path: '/more', prefetch: () => import('../pages/MorePage') },
 ];
 
 const morePaths = ['/more', '/calendar', '/leaderboard', '/games', '/profile'];
@@ -22,6 +23,14 @@ export default function BottomNav() {
   const { t } = useTranslation();
   const { notifications } = useUser();
   const chatUnreadCount = getUnreadChatNotifications(notifications).length;
+
+  // Prefetch all tab chunks during idle time after first render
+  useEffect(() => {
+    const id = requestIdleCallback(() => {
+      tabs.forEach((tab) => tab.prefetch());
+    });
+    return () => cancelIdleCallback(id);
+  }, []);
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 bg-gradient-to-t from-background via-background to-transparent px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-5">
@@ -37,6 +46,8 @@ export default function BottomNav() {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
+              onMouseEnter={tab.prefetch}
+              onFocus={tab.prefetch}
               className={cn(
                 'relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-full px-1 py-2 text-[9px] font-bold uppercase tracking-[0.08em] text-ink-3',
                 isActive && 'bg-primary text-primary-foreground',

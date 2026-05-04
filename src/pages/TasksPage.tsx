@@ -1010,6 +1010,8 @@ function TasksMain() {
                                     <img
                                       src={`data:${feedback.imageMimeType};base64,${feedback.imageData}`}
                                       alt={t('tasks.feedbackImageAlt')}
+                                      decoding="async"
+                                      loading="lazy"
                                       className="mt-1 rounded-lg max-h-40 object-contain"
                                     />
                                   )}

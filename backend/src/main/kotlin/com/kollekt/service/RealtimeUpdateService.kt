@@ -2,6 +2,8 @@ package com.kollekt.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import java.time.Instant
@@ -79,14 +81,30 @@ class RealtimeUpdateService(
                     "payload" to payload,
                 ),
             )
-        sessionsByCollective[collectiveCode]
-            ?.filter { it.isOpen && it !== exclude }
-            ?.forEach { session ->
-                try {
-                    session.sendMessage(TextMessage(message))
-                } catch (_: Exception) {
-                    unregister(collectiveCode, session)
+        // Defer broadcast until after the surrounding DB transaction commits, so that
+        // receivers' subsequent fetches can see the just-written rows.
+        runAfterCommit {
+            sessionsByCollective[collectiveCode]
+                ?.filter { it.isOpen && it !== exclude }
+                ?.forEach { session ->
+                    try {
+                        session.sendMessage(TextMessage(message))
+                    } catch (_: Exception) {
+                        unregister(collectiveCode, session)
+                    }
                 }
-            }
+        }
+    }
+
+    private fun runAfterCommit(action: () -> Unit) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                object : TransactionSynchronization {
+                    override fun afterCommit() = action()
+                },
+            )
+        } else {
+            action()
+        }
     }
 }

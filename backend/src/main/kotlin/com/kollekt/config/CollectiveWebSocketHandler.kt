@@ -8,6 +8,8 @@ import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import org.springframework.web.util.UriComponentsBuilder
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @Component
 class CollectiveWebSocketHandler(
@@ -21,7 +23,9 @@ class CollectiveWebSocketHandler(
                 return
             }
         val queryParams = UriComponentsBuilder.fromUri(uri).build().queryParams
-        val memberName = queryParams.getFirst("memberName")?.trim()
+        val memberName = queryParams.getFirst("memberName")
+            ?.let { URLDecoder.decode(it, StandardCharsets.UTF_8) }
+            ?.trim()
         if (memberName.isNullOrBlank()) {
             session.close(CloseStatus.BAD_DATA.withReason("Missing memberName"))
             return
