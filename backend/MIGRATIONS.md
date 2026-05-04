@@ -20,9 +20,9 @@ Example:
 
 ```text
 Member.kt changed
--> create V3__add_member_phone_number.sql
+-> create V2__add_member_phone_number.sql
 -> start backend
--> Flyway runs V3
+-> Flyway runs V2
 ```
 
 ## Commands
@@ -80,5 +80,7 @@ alter table members
 
 ## Current baseline
 
-- `V1__baseline_schema.sql` represents the schema before `members.email`.
-- `V2__add_member_email.sql` adds the `email` column and backfills existing rows.
+- `V1__baseline_schema.sql` is a squashed baseline for fresh databases.
+- It represents the final schema from the previous migration chain through `V31`.
+- New schema changes should start at `V2`.
+- This baseline expects an empty target schema. If you point the app at an existing database, reset the schema first or create a new database/schema.

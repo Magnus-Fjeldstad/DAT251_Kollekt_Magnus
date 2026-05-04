@@ -1,3 +1,0 @@
-ALTER TABLE members ADD COLUMN IF NOT EXISTS google_access_token TEXT;
-ALTER TABLE members ADD COLUMN IF NOT EXISTS google_refresh_token VARCHAR(512);
-ALTER TABLE events ADD COLUMN IF NOT EXISTS google_event_id VARCHAR(255);
