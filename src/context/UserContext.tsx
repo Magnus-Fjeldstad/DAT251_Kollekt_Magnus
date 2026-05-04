@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { api, getAccessToken, logoutSession, deleteNotification, deleteAllNotifications, markNotificationAsRead } from '../lib/api';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import type { AppUser, Notification } from '../lib/types';
@@ -53,6 +53,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, []);
 
+  const notifDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchNotifications = useCallback((name: string) => {
     setNotificationsLoading(true);
     api.get<Notification[]>(`/notifications/${encodeURIComponent(name)}`)
@@ -60,6 +62,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .catch(() => {})
       .finally(() => setNotificationsLoading(false));
   }, []);
+
+  const fetchNotificationsDebounced = useCallback((name: string) => {
+    if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
+    notifDebounceRef.current = setTimeout(() => fetchNotifications(name), 500);
+  }, [fetchNotifications]);
 
   useEffect(() => {
     if (!currentUser?.name) { setNotifications([]); return; }
@@ -71,11 +78,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const name = currentUser.name;
     const disconnect = connectCollectiveRealtime(name, (event) => {
       if (event.type === 'NOTIFICATION_CREATED') {
-        fetchNotifications(name);
+        fetchNotificationsDebounced(name);
       }
     });
-    return disconnect;
-  }, [currentUser?.name, fetchNotifications]);
+    return () => {
+      if (notifDebounceRef.current) clearTimeout(notifDebounceRef.current);
+      disconnect();
+    };
+  }, [currentUser?.name, fetchNotificationsDebounced]);
 
   const setCurrentUser = (user: AppUser | null) => {
     setCurrentUserState(user);

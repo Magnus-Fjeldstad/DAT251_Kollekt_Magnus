@@ -74,7 +74,7 @@ export default function ChatPage() {
   }, [name]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [messages]);
 
   const sendMessage = async () => {
@@ -187,6 +187,7 @@ export default function ChatPage() {
                     <img
                       src={`data:${message.imageMimeType};base64,${message.imageData}`}
                       alt={message.imageFileName ?? t('chat.imageAlt')}
+                      decoding="async"
                       className="rounded-lg mt-1 max-h-40 object-cover cursor-zoom-in"
                       onClick={(e) => {
                         e.stopPropagation();
@@ -357,6 +358,7 @@ export default function ChatPage() {
             <img
               src={expandedImage.src}
               alt={expandedImage.alt}
+              decoding="async"
               className="h-full w-full object-contain"
               onClick={(e) => e.stopPropagation()}
             />

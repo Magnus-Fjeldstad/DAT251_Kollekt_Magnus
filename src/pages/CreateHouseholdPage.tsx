@@ -121,7 +121,7 @@ export default function CreateHouseholdPage() {
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-full border-[1.5px] border-primary bg-[var(--sky)] shadow-[2px_2px_0_var(--ink)]">
-              <img src="/favicon.png" alt="" className="h-7 w-7 rounded-full object-cover" />
+              <img src="/favicon.png" alt="" width={28} height={28} className="h-7 w-7 rounded-full object-cover" />
             </span>
             <span className="font-display text-3xl italic leading-none">Kollekt</span>
           </div>

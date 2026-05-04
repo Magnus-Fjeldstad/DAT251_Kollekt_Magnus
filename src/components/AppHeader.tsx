@@ -124,7 +124,7 @@ export default function AppHeader() {
             aria-label={t('app.name')}
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-[1.5px] border-primary bg-secondary shadow-[2px_2px_0_var(--ink)]">
-              <img src="/favicon.png" alt="" className="h-6 w-6 rounded-full object-cover" />
+              <img src="/favicon.png" alt="" width={24} height={24} className="h-6 w-6 rounded-full object-cover" />
             </span>
             <span className="font-display text-2xl italic leading-none">Kollekt</span>
             {currentUser?.collectiveName && (
