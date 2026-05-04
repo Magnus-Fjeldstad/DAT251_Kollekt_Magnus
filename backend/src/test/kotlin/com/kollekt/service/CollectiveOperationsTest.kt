@@ -60,7 +60,7 @@ class CollectiveOperationsTest {
         redisTemplate = mock()
         doReturn(emptySet<String>()).whenever(redisTemplate).keys("dashboard:*")
         doReturn(emptySet<String>()).whenever(redisTemplate).keys("leaderboard:*")
-        userProfileService = UserProfileService(memberRepository)
+        userProfileService = UserProfileService(memberRepository, collectiveRepository)
         statsCacheService = StatsCacheService(redisTemplate)
         operations =
             CollectiveOperations(

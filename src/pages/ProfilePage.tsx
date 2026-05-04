@@ -24,7 +24,7 @@ import {
   getUserMessage,
 } from "../lib/api";
 import { useUser } from "../context/UserContext";
-import { formatDateTime, translateKey } from "../i18n/helpers";
+import { formatDateTime, formatNotificationMessage, translateKey } from "../i18n/helpers";
 import type {
   AppUser,
   MemberStatus,
@@ -383,7 +383,7 @@ export default function ProfilePage() {
                     >
                       <X className="h-2.5 w-2.5 text-muted-foreground" />
                     </button>
-                    <p className="pr-4">{notification.message}</p>
+                    <p className="pr-4">{formatNotificationMessage(notification)}</p>
                     <p className="text-muted-foreground text-[9px] mt-0.5">
                       {formatDateTime(notification.timestamp)}
                     </p>

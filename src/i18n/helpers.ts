@@ -1,4 +1,5 @@
 import i18n from './index';
+import type { Notification } from '../lib/types';
 
 function getLocale(language = i18n.resolvedLanguage ?? i18n.language): string {
   return language === 'no' ? 'nb-NO' : 'en-US';
@@ -79,4 +80,35 @@ export function translateKey(baseKey: string, value: string | null | undefined, 
 export function translateLowerKey(baseKey: string, value: string | null | undefined, fallback?: string): string {
   if (!value) return fallback ?? '';
   return i18n.t(`${baseKey}.${value.toLowerCase()}`, { defaultValue: fallback ?? value });
+}
+
+export function formatNotificationMessage(notification: Notification): string {
+  const key = `profile.notifications.messages.${notification.type}`;
+  const rawMessage = notification.message.trim();
+
+  if (!i18n.exists(key)) return rawMessage;
+
+  let params: Record<string, string> = {};
+  if (rawMessage.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(rawMessage) as unknown;
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        params = Object.fromEntries(
+          Object.entries(parsed as Record<string, unknown>).map(([key, value]) => [
+            key,
+            String(value ?? ''),
+          ]),
+        );
+      }
+    } catch {
+      return rawMessage;
+    }
+  }
+
+  const translated = i18n.t(key, {
+    ...params,
+    defaultValue: rawMessage,
+  });
+
+  return translated === key ? rawMessage : translated;
 }

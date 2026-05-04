@@ -152,6 +152,7 @@ data class UserDto(
     val name: String,
     val email: String = "",
     val collectiveCode: String?,
+    val collectiveName: String? = null,
     val status: MemberStatus = MemberStatus.ACTIVE,
     val friends: List<FriendDto> = emptyList(),
 )

@@ -111,7 +111,7 @@ export default function DashboardPage() {
 
       <NidoCard className="overflow-hidden p-0">
         <div className="bg-primary px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-primary-foreground">
-          House · {currentUser?.collectiveCode ?? t('app.name')} · live
+          House · {currentUser?.collectiveName ?? t('app.name')} · live
         </div>
         <div className="p-4">
           <div className="flex items-center gap-4">

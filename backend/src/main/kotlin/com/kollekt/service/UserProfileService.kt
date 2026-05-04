@@ -3,12 +3,14 @@ package com.kollekt.service
 import com.kollekt.api.dto.FriendDto
 import com.kollekt.api.dto.UserDto
 import com.kollekt.domain.Member
+import com.kollekt.repository.CollectiveRepository
 import com.kollekt.repository.MemberRepository
 import org.springframework.stereotype.Service
 
 @Service
 class UserProfileService(
     private val memberRepository: MemberRepository,
+    private val collectiveRepository: CollectiveRepository,
 ) {
     companion object {
         // TODO: Replace with persistent storage (e.g., Friend entity/repository)
@@ -49,11 +51,16 @@ class UserProfileService(
 
     fun toUserDto(member: Member): UserDto {
         val friends = friendsMap[member.name]?.map(::FriendDto) ?: emptyList()
+        val collectiveName =
+            member.collectiveCode
+                ?.let(collectiveRepository::findByJoinCode)
+                ?.name
         return UserDto(
             id = member.id,
             name = member.name,
             email = member.email,
             collectiveCode = member.collectiveCode,
+            collectiveName = collectiveName,
             status = member.status,
             friends = friends,
         )

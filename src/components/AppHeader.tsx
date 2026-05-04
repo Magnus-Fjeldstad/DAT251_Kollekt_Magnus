@@ -14,7 +14,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useUser } from '../context/UserContext';
 import { api } from '../lib/api';
-import { formatTime } from '../i18n/helpers';
+import { formatNotificationMessage, formatTime } from '../i18n/helpers';
 import type { MemberStatus } from '../lib/types';
 import LanguageSwitcher from './LanguageSwitcher';
 import { NidoAvatar, NidoChip } from './nido';
@@ -118,9 +118,9 @@ export default function AppHeader() {
               <img src="/favicon.png" alt="" className="h-6 w-6 rounded-full object-cover" />
             </span>
             <span className="font-display text-2xl italic leading-none">Kollekt</span>
-            {currentUser?.collectiveCode && (
-              <span className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 min-[380px]:inline">
-                {currentUser.collectiveCode}
+            {currentUser?.collectiveName && (
+              <span className="hidden max-w-40 truncate font-mono text-[10px] tracking-[0.08em] text-ink-3 min-[380px]:inline">
+                {currentUser.collectiveName}
               </span>
             )}
           </button>
@@ -188,14 +188,7 @@ export default function AppHeader() {
                               <X className="h-3 w-3" aria-hidden="true" />
                             </button>
                             <p className="pr-7 leading-snug">
-                              {(() => {
-                                try {
-                                  const params = JSON.parse(n.message) as Record<string, string>;
-                                  return t(`notifications.messages.${n.type}`, params);
-                                } catch {
-                                  return n.message;
-                                }
-                              })()}
+                              {formatNotificationMessage(n)}
                             </p>
                             <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
                               {formatTime(n.timestamp)}

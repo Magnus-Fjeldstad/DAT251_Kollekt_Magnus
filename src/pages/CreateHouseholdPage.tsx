@@ -62,7 +62,7 @@ export default function CreateHouseholdPage() {
         return;
       }
 
-      const res = await api.post<{ joinCode: string }>('/onboarding/collectives', {
+      const res = await api.post<{ name: string; joinCode: string }>('/onboarding/collectives', {
         name: houseName || address || t('createHousehold.defaultHouseholdName'),
         ownerUserId: currentUser.id,
         numRooms: roomConfigs.length,
@@ -71,7 +71,7 @@ export default function CreateHouseholdPage() {
       });
       setCreatedCode(res.joinCode);
       // Update user with new collective code
-      const updated: AppUser = { ...currentUser, collectiveCode: res.joinCode };
+      const updated: AppUser = { ...currentUser, collectiveCode: res.joinCode, collectiveName: res.name };
       setCurrentUser(updated);
       setStep(3);
     } catch (err: unknown) {

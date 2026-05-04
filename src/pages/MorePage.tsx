@@ -17,13 +17,12 @@ export default function MorePage() {
   const { t } = useTranslation();
   const { currentUser, notifications, handleLogout } = useUser();
   const unread = notifications.filter((notification) => !notification.read).length;
+  const collectiveName = currentUser?.collectiveName ?? t('more.house.household');
 
   const houseRows = [
     {
-      label: t('more.house.address'),
-      sub: currentUser?.collectiveCode
-        ? t('more.house.householdCode', { code: currentUser.collectiveCode })
-        : t('more.house.household'),
+      label: collectiveName,
+      sub: t('more.house.household'),
       glyph: '🏡',
       action: () => navigate('/profile'),
     },

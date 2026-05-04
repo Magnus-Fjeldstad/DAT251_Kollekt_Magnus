@@ -4,6 +4,7 @@ import com.kollekt.api.dto.CreateUserRequest
 import com.kollekt.api.dto.LoginRequest
 import com.kollekt.api.dto.RefreshTokenRequest
 import com.kollekt.domain.Member
+import com.kollekt.repository.CollectiveRepository
 import com.kollekt.repository.MemberRepository
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder
 
 class AccountOperationsTest {
     private lateinit var memberRepository: MemberRepository
+    private lateinit var collectiveRepository: CollectiveRepository
     private lateinit var passwordEncoder: PasswordEncoder
     private lateinit var tokenService: TokenService
     private lateinit var redisTemplate: RedisTemplate<String, Any>
@@ -31,12 +33,13 @@ class AccountOperationsTest {
     @BeforeEach
     fun setUp() {
         memberRepository = mock()
+        collectiveRepository = mock()
         passwordEncoder = mock()
         tokenService = mock()
         redisTemplate = mock()
         doReturn(emptySet<String>()).whenever(redisTemplate).keys("dashboard:*")
         doReturn(emptySet<String>()).whenever(redisTemplate).keys("leaderboard:*")
-        userProfileService = UserProfileService(memberRepository)
+        userProfileService = UserProfileService(memberRepository, collectiveRepository)
         statsCacheService = StatsCacheService(redisTemplate)
         operations = AccountOperations(memberRepository, passwordEncoder, tokenService, userProfileService, statsCacheService)
     }

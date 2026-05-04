@@ -200,6 +200,7 @@ export interface AppUser {
   name: string;
   email: string;
   collectiveCode: string | null;
+  collectiveName?: string | null;
   status: MemberStatus;
   friends?: Friend[];
 }
