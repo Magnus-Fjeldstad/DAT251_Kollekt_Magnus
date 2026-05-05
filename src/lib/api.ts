@@ -15,6 +15,31 @@ export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const TOKEN_KEY = 'kollekt-access-token';
 const REFRESH_TOKEN_KEY = 'kollekt-refresh-token';
+const DEFAULT_GET_CACHE_TTL_MS = 30_000;
+
+interface GetCacheEntry {
+  expiresAt: number;
+  value: unknown;
+}
+
+interface GetOptions {
+  cache?: boolean;
+  ttlMs?: number;
+}
+
+const getCache = new Map<string, GetCacheEntry>();
+const inflightGetRequests = new Map<string, Promise<unknown>>();
+let cacheVersion = 0;
+
+function getCacheKey(path: string): string {
+  return `${getAccessToken() ?? 'anonymous'}:${path}`;
+}
+
+export function clearApiGetCache(): void {
+  cacheVersion += 1;
+  getCache.clear();
+  inflightGetRequests.clear();
+}
 
 export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -235,6 +260,51 @@ async function request<T>(path: string, init?: RequestInit, retryOnAuthFailure =
   return text as T;
 }
 
+async function cachedGet<T>(path: string, options: GetOptions = {}): Promise<T> {
+  if (options.cache === false) {
+    return request<T>(path);
+  }
+
+  const cacheKey = getCacheKey(path);
+  const cached = getCache.get(cacheKey);
+  const now = Date.now();
+
+  if (cached && cached.expiresAt > now) {
+    return cached.value as T;
+  }
+
+  const inflight = inflightGetRequests.get(cacheKey);
+  if (inflight) {
+    return inflight as Promise<T>;
+  }
+
+  const requestVersion = cacheVersion;
+  const requestPromise = request<T>(path)
+    .then((value) => {
+      if (requestVersion === cacheVersion) {
+        getCache.set(cacheKey, {
+          value,
+          expiresAt: Date.now() + (options.ttlMs ?? DEFAULT_GET_CACHE_TTL_MS),
+        });
+      }
+      return value;
+    })
+    .finally(() => {
+      if (inflightGetRequests.get(cacheKey) === requestPromise) {
+        inflightGetRequests.delete(cacheKey);
+      }
+    });
+
+  inflightGetRequests.set(cacheKey, requestPromise as Promise<unknown>);
+  return requestPromise;
+}
+
+async function mutate<T>(path: string, init: RequestInit): Promise<T> {
+  const result = await request<T>(path, init);
+  clearApiGetCache();
+  return result;
+}
+
 export async function deleteNotification(userName: string, id: number): Promise<void> {
   await api.delete(`/notifications/${encodeURIComponent(userName)}/${id}`);
 }
@@ -252,13 +322,13 @@ export async function updateNotificationPreference(memberName: string, prefs: Re
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  postForm: <T>(path: string, body: FormData) => request<T>(path, { method: 'POST', body }),
+  get: <T>(path: string, options?: GetOptions) => cachedGet<T>(path, options),
+  post: <T>(path: string, body: unknown) => mutate<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  postForm: <T>(path: string, body: FormData) => mutate<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) =>
-  request<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
+  mutate<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined }),
   delete: <T = void>(path: string, body?: unknown) =>
-      request<T>(path, {
+      mutate<T>(path, {
         method: 'DELETE',
         body: body ? JSON.stringify(body) : undefined,
       }),

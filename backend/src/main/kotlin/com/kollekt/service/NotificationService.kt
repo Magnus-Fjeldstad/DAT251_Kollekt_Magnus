@@ -169,7 +169,7 @@ class NotificationService(
         }
     }
 
-    fun getNotificationsForUser(userName: String): List<Notification> = notificationRepository.findAllByUserName(userName)
+    fun getNotificationsForUser(userName: String): List<Notification> = notificationRepository.findAllByUserNameOrderByTimestampDesc(userName)
 
     @Transactional
     fun markAllAsRead(userName: String) {

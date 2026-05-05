@@ -119,7 +119,7 @@ class StatsServiceTest {
     fun `get dashboard aggregates collective scoped data`() {
         whenever(valueOperations.get("dashboard:Kasper")).thenReturn(null)
         whenever(valueOperations.get("leaderboard:ABC123:OVERALL")).thenReturn(null)
-        whenever(taskRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        val tasks =
             listOf(
                 task(
                     id = 1,
@@ -131,15 +131,18 @@ class StatsServiceTest {
                 ),
                 task(id = 2, title = "Dishes", assignee = "Emma", dueDate = LocalDate.now().plusDays(1), xp = 15),
                 task(id = 3, title = "Floors", assignee = "Kasper", dueDate = LocalDate.now().plusDays(2), xp = 25),
-            ),
-        )
+            )
+        whenever(taskRepository.findAllByCollectiveCode("ABC123")).thenReturn(tasks)
+        whenever(taskRepository.countByCollectiveCodeAndCompletedTrueAndAssignee("ABC123", "Kasper")).thenReturn(1L)
+        whenever(taskRepository.findTop3ByCollectiveCodeAndCompletedFalseOrderByDueDateAscIdAsc("ABC123"))
+            .thenReturn(tasks.filter { !it.completed })
         whenever(memberRepository.findAllByCollectiveCode("ABC123")).thenReturn(
             listOf(
                 member("Kasper", "kasper@example.com", xp = 250, level = 2),
                 member("Emma", "emma@example.com", id = 2, xp = 150, level = 1),
-            ),
+            )
         )
-        whenever(eventRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        val events =
             listOf(
                 CalendarEvent(
                     id = 5,
@@ -152,9 +155,10 @@ class StatsServiceTest {
                     attendees = 4,
                     description = "Snacks",
                 ),
-            ),
-        )
-        whenever(expenseRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+            )
+        whenever(eventRepository.findTop3ByCollectiveCodeAndDateGreaterThanEqualOrderByDateAscTimeAsc(eq("ABC123"), any()))
+            .thenReturn(events)
+        val expenses =
             listOf(
                 Expense(
                     id = 7,
@@ -166,8 +170,9 @@ class StatsServiceTest {
                     date = LocalDate.now(),
                     participantNames = setOf("Kasper", "Emma"),
                 ),
-            ),
-        )
+            )
+        whenever(expenseRepository.findTop3ByCollectiveCodeOrderByDateDescIdDesc("ABC123")).thenReturn(expenses)
+        whenever(shoppingItemRepository.findTop3ByCollectiveCodeAndCompletedFalseOrderByIdAsc("ABC123")).thenReturn(emptyList())
 
         val result = service.getDashboard("Kasper")
 

@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
-import { api, getAccessToken, logoutSession, deleteNotification, deleteAllNotifications, markNotificationAsRead } from '../lib/api';
+import { api, getAccessToken, logoutSession, deleteNotification, deleteAllNotifications, markNotificationAsRead, clearApiGetCache } from '../lib/api';
 import { connectCollectiveRealtime } from '../lib/realtime';
 import type { RealtimeEvent } from '../lib/realtime';
 import type { AppUser, Notification } from '../lib/types';
@@ -104,6 +104,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       if (event.type === 'MEMBER_ONLINE' || event.type === 'MEMBER_OFFLINE') {
         latestPresenceEventRef.current = event;
       }
+      if (event.type !== 'MEMBER_ONLINE' && event.type !== 'MEMBER_OFFLINE' && event.type !== 'pong') {
+        clearApiGetCache();
+      }
       if (event.type === 'NOTIFICATION_CREATED') {
         fetchNotificationsDebounced(name);
       }
@@ -123,6 +126,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const setCurrentUser = (user: AppUser | null) => {
     setCurrentUserState(user);
+    clearApiGetCache();
     if (user) localStorage.setItem('kollekt-user', JSON.stringify(user));
     else localStorage.removeItem('kollekt-user');
   };
@@ -133,6 +137,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setNotifications([]);
     realtimeListenersRef.current.clear();
     latestPresenceEventRef.current = null;
+    clearApiGetCache();
     localStorage.removeItem('kollekt-user');
   };
 

@@ -10,6 +10,15 @@ import org.springframework.data.repository.query.Param
 interface TaskRepository : JpaRepository<TaskItem, Long> {
     fun findAllByCollectiveCode(collectiveCode: String): List<TaskItem>
 
+    fun findAllByCollectiveCodeOrderByDueDateAscIdAsc(collectiveCode: String): List<TaskItem>
+
+    fun countByCollectiveCodeAndCompletedTrueAndAssignee(
+        collectiveCode: String,
+        assignee: String,
+    ): Long
+
+    fun findTop3ByCollectiveCodeAndCompletedFalseOrderByDueDateAscIdAsc(collectiveCode: String): List<TaskItem>
+
     fun findByIdAndCollectiveCode(
         id: Long,
         collectiveCode: String,

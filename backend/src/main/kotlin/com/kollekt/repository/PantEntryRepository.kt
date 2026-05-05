@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface PantEntryRepository : JpaRepository<PantEntry, Long> {
     fun findAllByCollectiveCode(collectiveCode: String): List<PantEntry>
+
+    fun findAllByCollectiveCodeOrderByDateDescIdDesc(collectiveCode: String): List<PantEntry>
 }

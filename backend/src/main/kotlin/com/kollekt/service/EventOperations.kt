@@ -23,8 +23,7 @@ class EventOperations(
     fun getEvents(memberName: String): List<EventDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         return eventRepository
-            .findAllByCollectiveCode(collectiveCode)
-            .sortedBy { it.date }
+            .findAllByCollectiveCodeOrderByDateAscTimeAsc(collectiveCode)
             .map { it.toDto() }
     }
 

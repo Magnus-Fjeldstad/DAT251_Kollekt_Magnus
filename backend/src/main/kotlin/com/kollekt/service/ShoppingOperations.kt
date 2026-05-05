@@ -24,7 +24,7 @@ class ShoppingOperations(
 ) {
     fun getShoppingItems(memberName: String): List<ShoppingItemDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
-        return shoppingItemRepository.findAllByCollectiveCode(collectiveCode).map { it.toDto() }
+        return shoppingItemRepository.findAllByCollectiveCodeOrderByCompletedAscIdAsc(collectiveCode).map { it.toDto() }
     }
 
     @Transactional

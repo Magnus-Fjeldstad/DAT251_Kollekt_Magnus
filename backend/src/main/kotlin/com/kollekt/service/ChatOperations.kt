@@ -34,8 +34,7 @@ class ChatOperations(
     fun getMessages(memberName: String): List<MessageDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         return chatMessageRepository
-            .findAllByCollectiveCode(collectiveCode)
-            .sortedBy { it.timestamp }
+            .findAllByCollectiveCodeOrderByTimestampAsc(collectiveCode)
             .map { it.toDto() }
     }
 

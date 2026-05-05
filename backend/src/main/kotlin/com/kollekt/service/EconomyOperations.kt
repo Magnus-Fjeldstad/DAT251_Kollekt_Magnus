@@ -43,8 +43,7 @@ class EconomyOperations(
     fun getExpenses(memberName: String): List<ExpenseDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         return expenseRepository
-            .findAllByCollectiveCode(collectiveCode)
-            .sortedWith(compareByDescending<Expense> { it.date }.thenByDescending { it.id })
+            .findAllByCollectiveCodeOrderByDateDescIdDesc(collectiveCode)
             .map { it.toDto() }
     }
 
@@ -167,8 +166,7 @@ class EconomyOperations(
         val collective = collectiveRepository.findByJoinCode(collectiveCode)
         val entries =
             pantEntryRepository
-                .findAllByCollectiveCode(collectiveCode)
-                .sortedWith(compareByDescending<PantEntry> { it.date }.thenByDescending { it.id })
+                .findAllByCollectiveCodeOrderByDateDescIdDesc(collectiveCode)
                 .map { it.toDto() }
 
         return PantSummaryDto(

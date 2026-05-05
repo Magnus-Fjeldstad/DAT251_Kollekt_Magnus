@@ -461,18 +461,8 @@ class EconomyOperationsTest {
 
     @Test
     fun `get expenses returns sorted list by date and id`() {
-        whenever(expenseRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        whenever(expenseRepository.findAllByCollectiveCodeOrderByDateDescIdDesc("ABC123")).thenReturn(
             listOf(
-                Expense(
-                    id = 1,
-                    description = "Pizza",
-                    amount = 200,
-                    paidBy = "Kasper",
-                    collectiveCode = "ABC123",
-                    category = "Food",
-                    date = LocalDate.parse("2026-03-01"),
-                    participantNames = setOf("Kasper", "Emma"),
-                ),
                 Expense(
                     id = 2,
                     description = "Coffee",
@@ -481,6 +471,16 @@ class EconomyOperationsTest {
                     collectiveCode = "ABC123",
                     category = "Drinks",
                     date = LocalDate.parse("2026-03-02"),
+                    participantNames = setOf("Kasper", "Emma"),
+                ),
+                Expense(
+                    id = 1,
+                    description = "Pizza",
+                    amount = 200,
+                    paidBy = "Kasper",
+                    collectiveCode = "ABC123",
+                    category = "Food",
+                    date = LocalDate.parse("2026-03-01"),
                     participantNames = setOf("Kasper", "Emma"),
                 ),
             ),
@@ -497,7 +497,7 @@ class EconomyOperationsTest {
     fun `get pant summary returns entries and goal`() {
         val collective = Collective(id = 1, name = "TestCo", joinCode = "ABC123", ownerMemberId = 1, pantGoal = 2000)
         whenever(collectiveRepository.findByJoinCode("ABC123")).thenReturn(collective)
-        whenever(pantEntryRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        whenever(pantEntryRepository.findAllByCollectiveCodeOrderByDateDescIdDesc("ABC123")).thenReturn(
             listOf(
                 PantEntry(
                     id = 1,
@@ -527,20 +527,20 @@ class EconomyOperationsTest {
 
     @Test
     fun `get economy summary aggregates expenses balances and pant`() {
-        whenever(expenseRepository.findAllByCollectiveCode("ABC123")).thenReturn(
-            listOf(
-                Expense(
-                    id = 1,
-                    description = "Pizza",
-                    amount = 200,
-                    paidBy = "Kasper",
-                    collectiveCode = "ABC123",
-                    category = "Food",
-                    date = LocalDate.parse("2026-03-01"),
-                    participantNames = setOf("Kasper", "Emma"),
-                ),
+        val expenses = listOf(
+            Expense(
+                id = 1,
+                description = "Pizza",
+                amount = 200,
+                paidBy = "Kasper",
+                collectiveCode = "ABC123",
+                category = "Food",
+                date = LocalDate.parse("2026-03-01"),
+                participantNames = setOf("Kasper", "Emma"),
             ),
         )
+        whenever(expenseRepository.findAllByCollectiveCodeOrderByDateDescIdDesc("ABC123")).thenReturn(expenses)
+        whenever(expenseRepository.findAllByCollectiveCode("ABC123")).thenReturn(expenses)
         whenever(memberRepository.findAllByCollectiveCode("ABC123")).thenReturn(
             listOf(member("Kasper", "kasper@example.com"), member("Emma", "emma@example.com", id = 2)),
         )
@@ -549,7 +549,7 @@ class EconomyOperationsTest {
         whenever(personalSettlementRepository.findAllByCollectiveCode("ABC123")).thenReturn(emptyList())
         val collective = Collective(id = 1, name = "TestCo", joinCode = "ABC123", ownerMemberId = 1, pantGoal = 1000)
         whenever(collectiveRepository.findByJoinCode("ABC123")).thenReturn(collective)
-        whenever(pantEntryRepository.findAllByCollectiveCode("ABC123")).thenReturn(emptyList())
+        whenever(pantEntryRepository.findAllByCollectiveCodeOrderByDateDescIdDesc("ABC123")).thenReturn(emptyList())
 
         val result = operations.getEconomySummary("Kasper")
 
