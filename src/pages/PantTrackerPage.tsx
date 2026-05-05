@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Recycle, Target, Edit3, Check, X, Plus, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import { connectCollectiveRealtime } from "../lib/realtime";
-import { useUser } from "../context/UserContext";
+import { useCollectiveRealtime, useUser } from "../context/UserContext";
 import { formatCurrency, formatDate } from "../i18n/helpers";
 import type { PantSummary } from "../lib/types";
 
@@ -40,15 +39,11 @@ export default function PantTrackerPage() {
     fetchPant();
   }, [name]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (["PANT_ADDED", "PANT_UPDATED", "PANT_DELETED"].includes(event.type)) {
-        fetchPant();
-      }
-    });
-    return disconnect;
-  }, [name]);
+  useCollectiveRealtime((event) => {
+    if (["PANT_ADDED", "PANT_UPDATED", "PANT_DELETED"].includes(event.type)) {
+      fetchPant();
+    }
+  }, !!name);
 
   const handleAdd = async () => {
     const parsed = Math.round(Number(addAmount));

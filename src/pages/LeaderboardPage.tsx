@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Flame, Star, Gift, X, Pencil, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { connectCollectiveRealtime } from '../lib/realtime';
-import { useUser } from '../context/UserContext';
+import { useCollectiveRealtime, useUser } from '../context/UserContext';
 import { translateKey } from '../i18n/helpers';
 import type {
   LeaderboardResponse,
@@ -59,15 +58,11 @@ export default function LeaderboardPage() {
 
   useEffect(() => { fetchData(period); }, [name, period]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (['TASK_UPDATED', 'TASK_CREATED', 'TASK_DELETED', 'EXPENSE_CREATED', 'BALANCES_SETTLED', 'ACHIEVEMENT_CONFIG_UPDATED'].includes(event.type)) {
-        fetchData(period);
-      }
-    });
-    return disconnect;
-  }, [name, period]);
+  useCollectiveRealtime((event) => {
+    if (['TASK_UPDATED', 'TASK_CREATED', 'TASK_DELETED', 'EXPENSE_CREATED', 'BALANCES_SETTLED', 'ACHIEVEMENT_CONFIG_UPDATED'].includes(event.type)) {
+      fetchData(period);
+    }
+  }, !!name);
 
   const handleSetPrize = async () => {
     if (!name) return;

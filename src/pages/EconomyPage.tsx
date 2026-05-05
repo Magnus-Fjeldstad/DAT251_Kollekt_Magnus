@@ -4,9 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUpRight, ArrowDownLeft, Plus, Check, Recycle, ChevronRight, X, Users, Pencil, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { useUser } from '../context/UserContext';
+import { useCollectiveRealtime, useUser } from '../context/UserContext';
 import { formatCurrency, formatDate, translateKey } from '../i18n/helpers';
-import { connectCollectiveRealtime } from '../lib/realtime';
 import type { EconomySummary, Expense, PayOption } from '../lib/types';
 
 const EXPENSE_CATEGORIES = ['Groceries', 'Bills', 'Cleaning', 'Entertainment', 'Food', 'Other'];
@@ -63,15 +62,11 @@ export default function EconomyPage() {
       .catch(() => {});
   }, [name]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (['EXPENSE_CREATED', 'EXPENSE_UPDATED', 'EXPENSE_DELETED', 'BALANCES_SETTLED', 'PANT_ADDED'].includes(event.type)) {
-        fetchSummary();
-      }
-    });
-    return disconnect;
-  }, [name]);
+  useCollectiveRealtime((event) => {
+    if (['EXPENSE_CREATED', 'EXPENSE_UPDATED', 'EXPENSE_DELETED', 'BALANCES_SETTLED', 'PANT_ADDED'].includes(event.type)) {
+      fetchSummary();
+    }
+  }, !!name);
 
   const toggleSplit = (member: string) =>
     setNewSplit((prev) => prev.includes(member) ? prev.filter((m) => m !== member) : [...prev, member]);

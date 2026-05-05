@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import { useUser } from "../context/UserContext";
+import { useCollectiveRealtime, useUser } from "../context/UserContext";
 import {
   formatMonthDay,
   formatMonthYear,
@@ -19,7 +19,6 @@ import {
   getWeekdayLabels,
   translateKey,
 } from "../i18n/helpers";
-import { connectCollectiveRealtime } from "../lib/realtime";
 import type { CalendarEvent, EventType } from "../lib/types";
 
 const EVENT_TYPES: EventType[] = ["PARTY", "MOVIE", "DINNER", "OTHER"];
@@ -88,17 +87,13 @@ export default function CalendarPage() {
       .catch(() => {});
   }, [name]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (
-        ["EVENT_CREATED", "EVENT_DELETED", "EVENT_UPDATED"].includes(event.type)
-      ) {
-        fetchEvents();
-      }
-    });
-    return disconnect;
-  }, [name]);
+  useCollectiveRealtime((event) => {
+    if (
+      ["EVENT_CREATED", "EVENT_DELETED", "EVENT_UPDATED"].includes(event.type)
+    ) {
+      fetchEvents();
+    }
+  }, !!name);
 
   const prevMonth = () => {
     if (month === 0) {

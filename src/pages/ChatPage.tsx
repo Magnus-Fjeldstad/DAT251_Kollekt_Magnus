@@ -10,9 +10,8 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { api } from "../lib/api";
-import { useUser } from "../context/UserContext";
+import { useCollectiveRealtime, useUser } from "../context/UserContext";
 import { formatDateTime, formatTime } from "../i18n/helpers";
-import { connectCollectiveRealtime } from "../lib/realtime";
 import type { ChatMessage } from "../lib/types";
 import { getUnreadChatNotifications } from "../lib/notifications";
 
@@ -68,23 +67,19 @@ export default function ChatPage() {
     });
   }, [notifications, dismissNotification]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (
-        event.type === "MESSAGE_CREATED" ||
-        event.type === "MESSAGE_REACTION_UPDATED" ||
-        event.type === "MESSAGE_POLL_UPDATED"
-      ) {
-        fetchMessages();
-      }
-      if (event.type === "MEMBER_ONLINE" || event.type === "MEMBER_OFFLINE") {
-        const count = (event.payload as { count?: number })?.count;
-        if (count !== undefined) setOnlineCount(count);
-      }
-    });
-    return disconnect;
-  }, [name]);
+  useCollectiveRealtime((event) => {
+    if (
+      event.type === "MESSAGE_CREATED" ||
+      event.type === "MESSAGE_REACTION_UPDATED" ||
+      event.type === "MESSAGE_POLL_UPDATED"
+    ) {
+      fetchMessages();
+    }
+    if (event.type === "MEMBER_ONLINE" || event.type === "MEMBER_OFFLINE") {
+      const count = (event.payload as { count?: number })?.count;
+      if (count !== undefined) setOnlineCount(count);
+    }
+  }, !!name);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
