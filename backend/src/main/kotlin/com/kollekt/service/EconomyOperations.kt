@@ -40,6 +40,7 @@ class EconomyOperations(
     private val collectiveAccessService: CollectiveAccessService,
     private val statsCacheService: StatsCacheService,
 ) {
+    @Transactional(readOnly = true)
     fun getExpenses(memberName: String): List<ExpenseDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         return expenseRepository
@@ -146,6 +147,7 @@ class EconomyOperations(
         return dto
     }
 
+    @Transactional(readOnly = true)
     fun getBalances(memberName: String): List<BalanceDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         val allExpenses = expenseRepository.findAllByCollectiveCode(collectiveCode)
@@ -161,6 +163,7 @@ class EconomyOperations(
         return calculateBalances(allExpenses, members, memberCheckpoints, personalSettlements)
     }
 
+    @Transactional(readOnly = true)
     fun getPantSummary(memberName: String): PantSummaryDto {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         val collective = collectiveRepository.findByJoinCode(collectiveCode)
@@ -176,6 +179,7 @@ class EconomyOperations(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getPayOptions(memberName: String): List<PayOptionDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         val allExpenses = expenseRepository.findAllByCollectiveCode(collectiveCode)
@@ -283,6 +287,7 @@ class EconomyOperations(
         return dto
     }
 
+    @Transactional(readOnly = true)
     fun getEconomySummary(memberName: String): EconomySummaryDto =
         EconomySummaryDto(
             expenses = getExpenses(memberName),
@@ -366,6 +371,7 @@ class EconomyOperations(
         realtimeUpdateService.publish(collectiveCode, "BALANCES_SETTLED", payload)
     }
 
+    @Transactional(readOnly = true)
     fun notifyUpcomingExpenseDeadlines() {
         val tomorrow = LocalDate.now().plusDays(1)
         val expenses = expenseRepository.findAllByDeadlineDate(tomorrow)
@@ -381,6 +387,7 @@ class EconomyOperations(
         }
     }
 
+    @Transactional(readOnly = true)
     fun notifyExpiredExpenseDeadlines() {
         val today = LocalDate.now()
         val expenses = expenseRepository.findAllByDeadlineDate(today)

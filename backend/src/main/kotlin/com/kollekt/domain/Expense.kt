@@ -10,6 +10,8 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.Table
+import org.hibernate.annotations.Fetch
+import org.hibernate.annotations.FetchMode
 import java.time.LocalDate
 
 @Entity
@@ -23,7 +25,8 @@ data class Expense(
     @Column(nullable = false) val category: String,
     @Column(nullable = false) val date: LocalDate,
     @Column(nullable = true) val deadlineDate: LocalDate? = null,
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
+    @Fetch(FetchMode.SUBSELECT)
     @CollectionTable(
         name = "expense_participants",
         joinColumns = [JoinColumn(name = "expense_id")],

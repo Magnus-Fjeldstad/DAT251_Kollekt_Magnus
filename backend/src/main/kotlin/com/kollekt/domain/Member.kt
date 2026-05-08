@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.DynamicUpdate
 
 enum class MemberStatus {
     ACTIVE,
@@ -18,6 +19,7 @@ enum class MemberStatus {
 
 @Entity
 @Table(name = "members")
+@DynamicUpdate
 data class Member(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long = 0,
     @Column(nullable = false, unique = true) val name: String,

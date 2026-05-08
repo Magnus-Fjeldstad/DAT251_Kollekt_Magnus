@@ -6,10 +6,12 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.DynamicUpdate
 import java.time.LocalDateTime
 
 @Entity
 @Table(name = "chat_messages")
+@DynamicUpdate
 data class ChatMessage(
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) val id: Long = 0,
     @Column(nullable = false) val sender: String,

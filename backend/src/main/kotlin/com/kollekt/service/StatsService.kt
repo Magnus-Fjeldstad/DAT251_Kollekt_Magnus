@@ -183,6 +183,7 @@ class StatsService(
         statsCacheService.clearLeaderboardCache()
     }
 
+    @Transactional(readOnly = true)
     fun getAchievements(memberName: String): List<AchievementDto> {
         val cacheKey = "achievements:$memberName"
         val cached = redisTemplate.opsForValue().get(cacheKey)
@@ -222,6 +223,7 @@ class StatsService(
         return result
     }
 
+    @Transactional(readOnly = true)
     fun getAchievementsCatalog(memberName: String): List<AchievementCatalogItemDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         val collective =
@@ -254,6 +256,7 @@ class StatsService(
         realtimeUpdateService.publish(collectiveCode, "ACHIEVEMENT_CONFIG_UPDATED")
     }
 
+    @Transactional(readOnly = true)
     fun getMemberStats(
         viewerName: String,
         targetName: String,
@@ -289,6 +292,7 @@ class StatsService(
         )
     }
 
+    @Transactional(readOnly = true)
     fun getDashboard(memberName: String): DashboardResponse {
         val key = "dashboard:$memberName"
         val cached = redisTemplate.opsForValue().get(key)
