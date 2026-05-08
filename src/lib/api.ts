@@ -127,6 +127,15 @@ function sanitizeMessage(message: string, fallback: string): string {
     return t('errors.invalidCredentials', fallback);
   }
 
+  if (
+    lower.includes('413') ||
+    lower.includes('too large') ||
+    lower.includes('payload too') ||
+    lower.includes('entity too')
+  ) {
+    return t('errors.payloadTooLarge', fallback);
+  }
+
   if (lower.includes('already exists') || lower.includes('duplicate')) {
     return t('errors.alreadyExists', fallback);
   }
@@ -151,6 +160,15 @@ function sanitizeMessage(message: string, fallback: string): string {
   }
 
   return normalized;
+}
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
 }
 
 export function getUserMessage(error: unknown, fallback = t('errors.generic', 'Something went wrong. Please try again.')): string {
@@ -239,7 +257,7 @@ async function request<T>(path: string, init?: RequestInit, retryOnAuthFailure =
         // Keep raw body when it is not JSON.
       }
     }
-    throw new Error(getUserMessage(message, t('errors.generic', 'Something went wrong. Please try again.')));
+    throw new ApiError(getUserMessage(message, t('errors.generic', 'Something went wrong. Please try again.')), response.status);
   }
 
   if (response.status === 204) {

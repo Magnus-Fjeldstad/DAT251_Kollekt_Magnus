@@ -107,8 +107,9 @@ class ChatOperations(
             )
 
         val dto = saved.toDto()
-        eventPublisher.chatEvent("MESSAGE_CREATED", dto)
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_CREATED", dto)
+        val eventDto = dto.copy(imageData = null)
+        eventPublisher.chatEvent("MESSAGE_CREATED", eventDto)
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_CREATED", eventDto)
         val previewText = if (normalizedCaption.isNotBlank()) normalizedCaption else "[Image]"
         notifyOtherMembers(collectiveCode, actorName, previewText, "NEW_MESSAGE")
         return dto
@@ -148,7 +149,7 @@ class ChatOperations(
             )
 
         val dto = updated.toDto()
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto)
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto.copy(imageData = null))
         return dto
     }
 
@@ -184,7 +185,7 @@ class ChatOperations(
             )
 
         val dto = updated.toDto()
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto)
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto.copy(imageData = null))
         return dto
     }
 
