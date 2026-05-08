@@ -18,11 +18,82 @@ import { useChatImage } from "../lib/chatImages";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉", "😮"];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const CHAT_VIEWPORT_HEIGHT =
+  "min-h-[22rem] h-[calc(100dvh-10.75rem-env(safe-area-inset-bottom,0px))]";
+
+type LocalChatMessage = ChatMessage & {
+  renderKey?: number;
+};
+
+function isSameOptimisticMessage(
+  pending: LocalChatMessage,
+  confirmed: ChatMessage,
+) {
+  const pendingTime = Date.parse(pending.timestamp);
+  const hasTimezone = /(?:z|[+-]\d{2}:?\d{2})$/i.test(confirmed.timestamp);
+  const confirmedTimes = [
+    Date.parse(confirmed.timestamp),
+    ...(hasTimezone ? [] : [Date.parse(`${confirmed.timestamp}Z`)]),
+  ];
+  const timestampsAreClose =
+    Number.isFinite(pendingTime) &&
+    confirmedTimes.some(
+      (confirmedTime) =>
+        Number.isFinite(confirmedTime) &&
+        confirmedTime >= pendingTime - 30_000 &&
+        Math.abs(confirmedTime - pendingTime) < 2 * 60_000,
+    );
+
+  return (
+    pending.id < 0 &&
+    timestampsAreClose &&
+    pending.sender === confirmed.sender &&
+    pending.text === confirmed.text &&
+    (pending.replyToMessageId ?? null) === (confirmed.replyToMessageId ?? null)
+  );
+}
+
+function mergeFetchedMessages(
+  current: LocalChatMessage[],
+  fetched: ChatMessage[],
+): LocalChatMessage[] {
+  const currentById = new Map(current.map((message) => [message.id, message]));
+  const pendingMessages = current.filter((message) => message.id < 0);
+  const matchedPendingIds = new Set<number>();
+
+  const merged = fetched.map((message) => {
+    const existing = currentById.get(message.id);
+    if (existing) {
+      return existing.renderKey !== undefined
+        ? { ...message, renderKey: existing.renderKey }
+        : message;
+    }
+
+    const matchingPending = pendingMessages.find(
+      (pending) =>
+        !matchedPendingIds.has(pending.id) &&
+        isSameOptimisticMessage(pending, message),
+    );
+
+    if (matchingPending) {
+      matchedPendingIds.add(matchingPending.id);
+      return { ...message, renderKey: matchingPending.renderKey };
+    }
+
+    return message;
+  });
+
+  const stillPending = pendingMessages.filter(
+    (message) => !matchedPendingIds.has(message.id),
+  );
+
+  return [...merged, ...stillPending];
+}
 
 export default function ChatPage() {
   const { t } = useTranslation();
   const { currentUser, notifications, dismissNotification } = useUser();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<LocalChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [showPollForm, setShowPollForm] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
@@ -65,7 +136,7 @@ export default function ChatPage() {
           `/chat/messages?memberName=${encodeURIComponent(name)}`,
           { cache: false },
         );
-        setMessages(res);
+        setMessages((current) => mergeFetchedMessages(current, res));
       } finally {
         fetchInFlightRef.current = null;
         setLoading(false);
@@ -117,16 +188,24 @@ export default function ChatPage() {
         replyToMessageId: replyToMessageId ?? null,
         timestamp: new Date().toISOString(),
         reactions: [],
+        renderKey: tempId,
       },
     ]);
     setInput("");
     setReplyingToId(null);
     try {
-      await api.post("/chat/messages", {
+      const createdMessage = await api.post<ChatMessage>("/chat/messages", {
         sender: name,
         text,
         replyToMessageId,
       });
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === tempId
+            ? { ...createdMessage, renderKey: message.renderKey }
+            : message,
+        ),
+      );
     } catch {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
     }
@@ -212,7 +291,9 @@ export default function ChatPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-[calc(100vh-8.5rem)] pt-4 animate-pulse space-y-3">
+      <div
+        className={`flex flex-col ${CHAT_VIEWPORT_HEIGHT} pt-4 animate-pulse space-y-3`}
+      >
         {[...Array(5)].map((_, i) => (
           <div
             key={i}
@@ -227,7 +308,7 @@ export default function ChatPage() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="relative flex flex-col h-[calc(100vh-8.5rem)]"
+      className={`relative flex flex-col ${CHAT_VIEWPORT_HEIGHT}`}
     >
       {/* Online indicator */}
       <div className="flex items-center gap-2 pt-4 pb-2">
@@ -250,7 +331,7 @@ export default function ChatPage() {
               : undefined;
           return (
             <motion.div
-              key={message.id}
+              key={message.renderKey ?? message.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.02, 0.3) }}
