@@ -112,7 +112,6 @@ data class MessageDto(
     val id: Long,
     val sender: String,
     val text: String,
-    val imageData: String? = null,
     val imageMimeType: String? = null,
     val imageFileName: String? = null,
     val replyToMessageId: Long? = null,

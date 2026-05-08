@@ -373,7 +373,6 @@ class ControllerEndpointContractTest {
                 id = 4,
                 sender = "Kasper",
                 text = "Ny plante",
-                imageData = "AQID",
                 imageMimeType = "image/png",
                 imageFileName = "roommate.png",
                 timestamp = LocalDateTime.parse("2026-03-04T10:16:00"),

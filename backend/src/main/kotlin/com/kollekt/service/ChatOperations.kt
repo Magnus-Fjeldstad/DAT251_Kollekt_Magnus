@@ -10,6 +10,7 @@ import com.kollekt.api.dto.PollOptionDto
 import com.kollekt.api.dto.ReactionDto
 import com.kollekt.domain.ChatMessage
 import com.kollekt.domain.MemberStatus
+import com.kollekt.repository.ChatMessageListItem
 import com.kollekt.repository.ChatMessageRepository
 import com.kollekt.repository.MemberRepository
 import org.springframework.stereotype.Service
@@ -34,7 +35,7 @@ class ChatOperations(
     fun getMessages(memberName: String): List<MessageDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
         return chatMessageRepository
-            .findAllByCollectiveCodeOrderByTimestampAsc(collectiveCode)
+            .findListItemsByCollectiveCode(collectiveCode)
             .map { it.toDto() }
     }
 
@@ -107,9 +108,8 @@ class ChatOperations(
             )
 
         val dto = saved.toDto()
-        val eventDto = dto.copy(imageData = null)
-        eventPublisher.chatEvent("MESSAGE_CREATED", eventDto)
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_CREATED", eventDto)
+        eventPublisher.chatEvent("MESSAGE_CREATED", dto)
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_CREATED", dto)
         val previewText = if (normalizedCaption.isNotBlank()) normalizedCaption else "[Image]"
         notifyOtherMembers(collectiveCode, actorName, previewText, "NEW_MESSAGE")
         return dto
@@ -149,7 +149,7 @@ class ChatOperations(
             )
 
         val dto = updated.toDto()
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto.copy(imageData = null))
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto)
         return dto
     }
 
@@ -185,7 +185,7 @@ class ChatOperations(
             )
 
         val dto = updated.toDto()
-        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto.copy(imageData = null))
+        realtimeUpdateService.publish(collectiveCode, "MESSAGE_REACTION_UPDATED", dto)
         return dto
     }
 
@@ -272,6 +272,31 @@ class ChatOperations(
         return dto
     }
 
+    fun getMessageImage(
+        messageId: Long,
+        actorName: String,
+    ): ChatImagePayload {
+        val message =
+            chatMessageRepository
+                .findById(messageId)
+                .orElseThrow { IllegalArgumentException("Message not found") }
+        val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(actorName)
+        require(message.collectiveCode == collectiveCode) { "Message not found" }
+        val data = message.imageData ?: throw IllegalArgumentException("Message has no image")
+        val bytes = Base64.getDecoder().decode(data)
+        return ChatImagePayload(
+            bytes = bytes,
+            contentType = message.imageMimeType ?: "application/octet-stream",
+            fileName = message.imageFileName,
+        )
+    }
+
+    data class ChatImagePayload(
+        val bytes: ByteArray,
+        val contentType: String,
+        val fileName: String?,
+    )
+
     private fun notifyOtherMembers(
         collectiveCode: String,
         sender: String,
@@ -303,17 +328,17 @@ class ChatOperations(
         val users: List<String> = emptyList(),
     )
 
-    private fun ChatMessage.reactionMap(): Map<String, Set<String>> {
-        if (reactions.isBlank()) return emptyMap()
+    private fun parseReactions(json: String): Map<String, Set<String>> {
+        if (json.isBlank()) return emptyMap()
         return try {
-            objectMapper.readValue<Map<String, Set<String>>>(reactions)
+            objectMapper.readValue<Map<String, Set<String>>>(json)
         } catch (_: Exception) {
             emptyMap()
         }
     }
 
-    private fun ChatMessage.pollPayload(): PollPayload? {
-        val raw = poll?.trim().orEmpty()
+    private fun parsePoll(json: String?): PollPayload? {
+        val raw = json?.trim().orEmpty()
         if (raw.isBlank()) return null
         return try {
             objectMapper.readValue<PollPayload>(raw)
@@ -322,24 +347,37 @@ class ChatOperations(
         }
     }
 
+    private fun ChatMessage.reactionMap(): Map<String, Set<String>> = parseReactions(reactions)
+
+    private fun ChatMessage.pollPayload(): PollPayload? = parsePoll(poll)
+
     private fun Map<String, Set<String>>.toJsonMap(): Map<String, List<String>> = mapValues { (_, value) -> value.toList().sorted() }
 
-    private fun ChatMessage.toDto() =
+    private fun buildMessageDto(
+        id: Long,
+        sender: String,
+        text: String,
+        imageMimeType: String?,
+        imageFileName: String?,
+        replyToMessageId: Long?,
+        timestamp: LocalDateTime,
+        reactionsJson: String,
+        pollJson: String?,
+    ): MessageDto =
         MessageDto(
             id = id,
             sender = sender,
             text = text,
-            imageData = imageData,
             imageMimeType = imageMimeType,
             imageFileName = imageFileName,
             replyToMessageId = replyToMessageId,
             timestamp = timestamp,
             reactions =
-                reactionMap()
+                parseReactions(reactionsJson)
                     .map { (emoji, users) -> ReactionDto(emoji, users.toList().sorted()) }
                     .sortedBy { it.emoji },
             poll =
-                pollPayload()?.let { payload ->
+                parsePoll(pollJson)?.let { payload ->
                     PollDto(
                         question = payload.question,
                         options =
@@ -348,5 +386,31 @@ class ChatOperations(
                                 .map { PollOptionDto(id = it.id, text = it.text, users = it.users.sorted()) },
                     )
                 },
+        )
+
+    private fun ChatMessage.toDto() =
+        buildMessageDto(
+            id = id,
+            sender = sender,
+            text = text,
+            imageMimeType = imageMimeType,
+            imageFileName = imageFileName,
+            replyToMessageId = replyToMessageId,
+            timestamp = timestamp,
+            reactionsJson = reactions,
+            pollJson = poll,
+        )
+
+    private fun ChatMessageListItem.toDto() =
+        buildMessageDto(
+            id = id,
+            sender = sender,
+            text = text,
+            imageMimeType = imageMimeType,
+            imageFileName = imageFileName,
+            replyToMessageId = replyToMessageId,
+            timestamp = timestamp,
+            reactionsJson = reactions,
+            pollJson = poll,
         )
 }

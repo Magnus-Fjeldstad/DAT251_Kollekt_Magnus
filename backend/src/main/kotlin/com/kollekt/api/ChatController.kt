@@ -9,11 +9,15 @@ import com.kollekt.api.dto.MessageDto
 import com.kollekt.api.dto.RemoveReactionRequest
 import com.kollekt.api.dto.VotePollRequest
 import com.kollekt.service.ChatOperations
+import org.springframework.http.CacheControl
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.time.Duration
 
 @RestController
 @RequestMapping("/api/chat")
@@ -43,6 +47,19 @@ class ChatController(
         @RequestParam("caption", required = false) caption: String?,
         @AuthenticationPrincipal jwt: Jwt,
     ): MessageDto = chatOperations.createImageMessage(image, caption, jwt.subject)
+
+    @GetMapping("/messages/{messageId}/image")
+    fun getMessageImage(
+        @PathVariable messageId: Long,
+        @AuthenticationPrincipal jwt: Jwt,
+    ): ResponseEntity<ByteArray> {
+        val payload = chatOperations.getMessageImage(messageId, jwt.subject)
+        return ResponseEntity
+            .ok()
+            .contentType(MediaType.parseMediaType(payload.contentType))
+            .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePrivate().immutable())
+            .body(payload.bytes)
+    }
 
     @PostMapping("/polls")
     @ResponseStatus(HttpStatus.CREATED)

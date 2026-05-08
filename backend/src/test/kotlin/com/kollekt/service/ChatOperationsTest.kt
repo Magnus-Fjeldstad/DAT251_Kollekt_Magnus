@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -75,7 +76,11 @@ class ChatOperationsTest {
         val result = operations.createImageMessage(image, "  Finished  ", "Kasper")
 
         assertEquals("Finished", result.text)
-        assertEquals(Base64.getEncoder().encodeToString("img".toByteArray()), result.imageData)
+        assertEquals("image/png", result.imageMimeType)
+        assertEquals("cleanup.png", result.imageFileName)
+        val saved = argumentCaptor<ChatMessage>()
+        verify(chatMessageRepository).save(saved.capture())
+        assertEquals(Base64.getEncoder().encodeToString("img".toByteArray()), saved.firstValue.imageData)
         verify(eventPublisher).chatEvent("MESSAGE_CREATED", result)
     }
 
