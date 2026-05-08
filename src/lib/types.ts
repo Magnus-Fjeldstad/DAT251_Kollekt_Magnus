@@ -256,7 +256,6 @@ export interface ChatMessage {
   id: number;
   sender: string;
   text: string;
-  imageData?: string | null;
   imageMimeType?: string | null;
   imageFileName?: string | null;
   replyToMessageId?: number | null;

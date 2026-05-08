@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -14,6 +14,7 @@ import { useCollectiveRealtime, useUser } from "../context/UserContext";
 import { formatDateTime, formatTime } from "../i18n/helpers";
 import type { ChatMessage } from "../lib/types";
 import { getUnreadChatNotifications } from "../lib/notifications";
+import { useChatImage } from "../lib/chatImages";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉", "😮"];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -29,7 +30,7 @@ export default function ChatPage() {
   const [reactingId, setReactingId] = useState<number | null>(null);
   const [replyingToId, setReplyingToId] = useState<number | null>(null);
   const [expandedImage, setExpandedImage] = useState<{
-    src: string;
+    messageId: number;
     alt: string;
   } | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
@@ -37,9 +38,14 @@ export default function ChatPage() {
   const [imageError, setImageError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const optimisticIdRef = useRef(-1);
+  const fetchInFlightRef = useRef<Promise<void> | null>(null);
 
   const name = currentUser?.name ?? "";
-  const messageById = new Map(messages.map((message) => [message.id, message]));
+  const messageById = useMemo(
+    () => new Map(messages.map((message) => [message.id, message])),
+    [messages],
+  );
   const formatMessageTimestamp = (value: string) => {
     const messageDate = new Date(value);
     const now = new Date();
@@ -50,18 +56,28 @@ export default function ChatPage() {
     return isToday ? formatTime(value) : formatDateTime(value);
   };
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!name) return;
-    const res = await api.get<ChatMessage[]>(
-      `/chat/messages?memberName=${encodeURIComponent(name)}`,
-    );
-    setMessages(res);
-    setLoading(false);
-  };
+    if (fetchInFlightRef.current) return fetchInFlightRef.current;
+    const promise = (async () => {
+      try {
+        const res = await api.get<ChatMessage[]>(
+          `/chat/messages?memberName=${encodeURIComponent(name)}`,
+          { cache: false },
+        );
+        setMessages(res);
+      } finally {
+        fetchInFlightRef.current = null;
+        setLoading(false);
+      }
+    })();
+    fetchInFlightRef.current = promise;
+    return promise;
+  }, [name]);
 
   useEffect(() => {
     fetchMessages();
-  }, [name]);
+  }, [fetchMessages]);
 
   useEffect(() => {
     getUnreadChatNotifications(notifications).forEach((notification) => {
@@ -88,13 +104,32 @@ export default function ChatPage() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
-    const text = input;
+    const text = input.trim();
+    if (!text) return;
     const replyToMessageId = replyingToId;
+    const tempId = optimisticIdRef.current--;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        sender: name,
+        text,
+        replyToMessageId: replyToMessageId ?? null,
+        timestamp: new Date().toISOString(),
+        reactions: [],
+      },
+    ]);
     setInput("");
     setReplyingToId(null);
-    await api.post("/chat/messages", { sender: name, text, replyToMessageId });
-    fetchMessages();
+    try {
+      await api.post("/chat/messages", {
+        sender: name,
+        text,
+        replyToMessageId,
+      });
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+    }
   };
 
   const sendPoll = async () => {
@@ -104,26 +139,50 @@ export default function ChatPage() {
     setPollQuestion("");
     setPollOptions(["", ""]);
     setShowPollForm(false);
-    fetchMessages();
   };
 
   const votePoll = async (messageId: number, optionId: number) => {
     await api.post(`/chat/messages/${messageId}/poll/vote`, { optionId });
-    fetchMessages();
   };
 
   const toggleReaction = async (messageId: number, emoji: string) => {
     const msg = messages.find((m) => m.id === messageId);
     const existing = msg?.reactions.find((r) => r.emoji === emoji);
-    const alreadyReacted = existing?.users.includes(name);
-
-    if (alreadyReacted) {
-      await api.delete(`/chat/messages/${messageId}/reactions`, { emoji });
-    } else {
-      await api.post(`/chat/messages/${messageId}/reactions`, { emoji });
-    }
+    const alreadyReacted = !!existing?.users.includes(name);
     setReactingId(null);
-    fetchMessages();
+
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== messageId) return m;
+        const reactions = [...m.reactions];
+        const idx = reactions.findIndex((r) => r.emoji === emoji);
+        if (alreadyReacted) {
+          if (idx >= 0) {
+            const users = reactions[idx].users.filter((u) => u !== name);
+            if (users.length === 0) reactions.splice(idx, 1);
+            else reactions[idx] = { ...reactions[idx], users };
+          }
+        } else if (idx >= 0) {
+          reactions[idx] = {
+            ...reactions[idx],
+            users: [...reactions[idx].users, name],
+          };
+        } else {
+          reactions.push({ emoji, users: [name] });
+        }
+        return { ...m, reactions };
+      }),
+    );
+
+    try {
+      if (alreadyReacted) {
+        await api.delete(`/chat/messages/${messageId}/reactions`, { emoji });
+      } else {
+        await api.post(`/chat/messages/${messageId}/reactions`, { emoji });
+      }
+    } catch {
+      fetchMessages();
+    }
   };
 
   const sendImage = async (file: File) => {
@@ -140,7 +199,6 @@ export default function ChatPage() {
     try {
       await api.postForm("/chat/images", form);
       if (caption) setInput("");
-      fetchMessages();
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
       const message = err instanceof Error ? err.message : "";
@@ -241,19 +299,16 @@ export default function ChatPage() {
                     </p>
                   )}
                   {message.text && <p className="text-sm">{message.text}</p>}
-                  {message.imageData && (
-                    <img
-                      src={`data:${message.imageMimeType};base64,${message.imageData}`}
+                  {message.imageMimeType && (
+                    <ChatInlineImage
+                      messageId={message.id}
                       alt={message.imageFileName ?? t("chat.imageAlt")}
-                      decoding="async"
-                      className="rounded-lg mt-1 max-h-40 object-cover cursor-zoom-in"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      onExpand={() =>
                         setExpandedImage({
-                          src: `data:${message.imageMimeType};base64,${message.imageData}`,
+                          messageId: message.id,
                           alt: message.imageFileName ?? t("chat.imageAlt"),
-                        });
-                      }}
+                        })
+                      }
                     />
                   )}
                   {message.poll && (
@@ -525,16 +580,62 @@ export default function ChatPage() {
             >
               <X className="h-5 w-5 text-white" />
             </button>
-            <img
-              src={expandedImage.src}
+            <ChatExpandedImage
+              messageId={expandedImage.messageId}
               alt={expandedImage.alt}
-              decoding="async"
-              className="h-full w-full object-contain"
-              onClick={(e) => e.stopPropagation()}
             />
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+function ChatInlineImage({
+  messageId,
+  alt,
+  onExpand,
+}: {
+  messageId: number;
+  alt: string;
+  onExpand: () => void;
+}) {
+  const src = useChatImage(messageId);
+  if (!src) {
+    return (
+      <div className="rounded-lg mt-1 h-40 w-40 bg-muted/40 animate-pulse" />
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      decoding="async"
+      className="rounded-lg mt-1 max-h-40 object-cover cursor-zoom-in"
+      onClick={(e) => {
+        e.stopPropagation();
+        onExpand();
+      }}
+    />
+  );
+}
+
+function ChatExpandedImage({
+  messageId,
+  alt,
+}: {
+  messageId: number;
+  alt: string;
+}) {
+  const src = useChatImage(messageId);
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      decoding="async"
+      className="h-full w-full object-contain"
+      onClick={(e) => e.stopPropagation()}
+    />
   );
 }
