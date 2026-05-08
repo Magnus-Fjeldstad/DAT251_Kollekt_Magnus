@@ -9,14 +9,14 @@ import {
   Reply,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { api } from "../lib/api";
-import { useUser } from "../context/UserContext";
+import { api, ApiError } from "../lib/api";
+import { useCollectiveRealtime, useUser } from "../context/UserContext";
 import { formatDateTime, formatTime } from "../i18n/helpers";
-import { connectCollectiveRealtime } from "../lib/realtime";
 import type { ChatMessage } from "../lib/types";
 import { getUnreadChatNotifications } from "../lib/notifications";
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "🎉", "😮"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export default function ChatPage() {
   const { t } = useTranslation();
@@ -34,6 +34,7 @@ export default function ChatPage() {
   } | null>(null);
   const [onlineCount, setOnlineCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [imageError, setImageError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -68,23 +69,19 @@ export default function ChatPage() {
     });
   }, [notifications, dismissNotification]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (
-        event.type === "MESSAGE_CREATED" ||
-        event.type === "MESSAGE_REACTION_UPDATED" ||
-        event.type === "MESSAGE_POLL_UPDATED"
-      ) {
-        fetchMessages();
-      }
-      if (event.type === "MEMBER_ONLINE" || event.type === "MEMBER_OFFLINE") {
-        const count = (event.payload as { count?: number })?.count;
-        if (count !== undefined) setOnlineCount(count);
-      }
-    });
-    return disconnect;
-  }, [name]);
+  useCollectiveRealtime((event) => {
+    if (
+      event.type === "MESSAGE_CREATED" ||
+      event.type === "MESSAGE_REACTION_UPDATED" ||
+      event.type === "MESSAGE_POLL_UPDATED"
+    ) {
+      fetchMessages();
+    }
+    if (event.type === "MEMBER_ONLINE" || event.type === "MEMBER_OFFLINE") {
+      const count = (event.payload as { count?: number })?.count;
+      if (count !== undefined) setOnlineCount(count);
+    }
+  }, !!name);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -130,14 +127,29 @@ export default function ChatPage() {
   };
 
   const sendImage = async (file: File) => {
+    const maxMb = Math.floor(MAX_IMAGE_BYTES / (1024 * 1024));
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError(t("chat.imageTooLarge", { maxMb }));
+      return;
+    }
+    setImageError(null);
     const form = new FormData();
     form.append("image", file);
-    if (input.trim()) {
-      form.append("caption", input.trim());
-      setInput("");
+    const caption = input.trim();
+    if (caption) form.append("caption", caption);
+    try {
+      await api.postForm("/chat/images", form);
+      if (caption) setInput("");
+      fetchMessages();
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : 0;
+      const message = err instanceof Error ? err.message : "";
+      if (status === 413 || /413|too large|payload|for stor/i.test(message)) {
+        setImageError(t("chat.imageTooLarge", { maxMb }));
+      } else {
+        setImageError(message || t("chat.imageUploadFailed"));
+      }
     }
-    await api.postForm("/chat/images", form);
-    fetchMessages();
   };
 
   if (loading) {
@@ -433,6 +445,27 @@ export default function ChatPage() {
         </div>
       )}
 
+      <AnimatePresence>
+        {imageError && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            className="rounded-lg px-3 py-2 mb-2 flex items-start justify-between gap-2 border border-destructive/40 bg-destructive/10"
+            role="alert"
+          >
+            <p className="text-xs text-destructive">{imageError}</p>
+            <button
+              onClick={() => setImageError(null)}
+              className="shrink-0 text-destructive hover:opacity-80"
+              aria-label={t("chat.dismissError")}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Input bar */}
       <div className="flex gap-2 pt-2 pb-1">
         <input
@@ -443,6 +476,7 @@ export default function ChatPage() {
           onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) sendImage(f);
+            e.target.value = "";
           }}
         />
         <button

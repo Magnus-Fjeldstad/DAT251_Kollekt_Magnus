@@ -7,6 +7,10 @@ import java.time.LocalDate
 interface ExpenseRepository : JpaRepository<Expense, Long> {
     fun findAllByCollectiveCode(collectiveCode: String): List<Expense>
 
+    fun findAllByCollectiveCodeOrderByDateDescIdDesc(collectiveCode: String): List<Expense>
+
+    fun findTop3ByCollectiveCodeOrderByDateDescIdDesc(collectiveCode: String): List<Expense>
+
     fun findTopByCollectiveCodeOrderByIdDesc(collectiveCode: String): Expense?
 
     fun findAllByDeadlineDate(date: LocalDate): List<Expense>

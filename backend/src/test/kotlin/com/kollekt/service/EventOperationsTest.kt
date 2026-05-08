@@ -119,18 +119,8 @@ class EventOperationsTest {
 
     @Test
     fun `get events returns events sorted by date`() {
-        whenever(eventRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        whenever(eventRepository.findAllByCollectiveCodeOrderByDateAscTimeAsc("ABC123")).thenReturn(
             listOf(
-                CalendarEvent(
-                    id = 2,
-                    title = "Later",
-                    collectiveCode = "ABC123",
-                    date = LocalDate.parse("2026-05-01"),
-                    time = LocalTime.NOON,
-                    type = EventType.OTHER,
-                    organizer = "Kasper",
-                    attendees = 1,
-                ),
                 CalendarEvent(
                     id = 1,
                     title = "Earlier",
@@ -138,6 +128,16 @@ class EventOperationsTest {
                     date = LocalDate.parse("2026-04-01"),
                     time = LocalTime.NOON,
                     type = EventType.MOVIE,
+                    organizer = "Kasper",
+                    attendees = 1,
+                ),
+                CalendarEvent(
+                    id = 2,
+                    title = "Later",
+                    collectiveCode = "ABC123",
+                    date = LocalDate.parse("2026-05-01"),
+                    time = LocalTime.NOON,
+                    type = EventType.OTHER,
                     organizer = "Kasper",
                     attendees = 1,
                 ),

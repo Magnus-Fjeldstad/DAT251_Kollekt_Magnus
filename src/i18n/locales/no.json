@@ -97,6 +97,7 @@
     "alreadyExists": "Dette finnes allerede.",
     "alreadyInCollective": "Du er allerede med i et kollektiv.",
     "invalidJoinCode": "Koden ser ikke riktig ut. Sjekk den og prøv igjen.",
+    "payloadTooLarge": "Filen er for stor til å laste opp.",
     "generic": "Noe gikk galt. Prøv igjen."
   },
   "header": {
@@ -290,7 +291,10 @@
     "sendImage": "Send bilde",
     "togglePollForm": "Vis eller skjul avstemning",
     "imageAlt": "Delt bilde",
-    "closeImage": "Lukk bilde"
+    "closeImage": "Lukk bilde",
+    "imageTooLarge": "Bildet er for stort. Maksimal størrelse er {{maxMb}} MB.",
+    "imageUploadFailed": "Kunne ikke laste opp bildet. Prøv igjen.",
+    "dismissError": "Lukk feilmelding"
   },
   "economy": {
     "title": "Økonomi",

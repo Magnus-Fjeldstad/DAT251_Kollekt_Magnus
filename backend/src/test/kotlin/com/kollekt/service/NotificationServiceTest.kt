@@ -77,7 +77,7 @@ class NotificationServiceTest {
     @Test
     fun `get notifications for user delegates to repository`() {
         val expected = listOf(Notification(id = 1, userName = "Kasper", message = "Hi"))
-        whenever(notificationRepository.findAllByUserName("Kasper")).thenReturn(expected)
+        whenever(notificationRepository.findAllByUserNameOrderByTimestampDesc("Kasper")).thenReturn(expected)
 
         val result = service.getNotificationsForUser("Kasper")
 

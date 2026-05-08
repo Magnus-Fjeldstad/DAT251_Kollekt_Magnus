@@ -294,15 +294,15 @@ class TaskOperationsTest {
 
     @Test
     fun `get tasks returns tasks sorted by due date and id`() {
-        whenever(taskRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        whenever(taskRepository.findAllByCollectiveCodeOrderByDueDateAscIdAsc("ABC123")).thenReturn(
             listOf(
                 TaskItem(
-                    id = 3,
-                    title = "Bathroom",
-                    assignee = "Kasper",
+                    id = 1,
+                    title = "Kitchen",
+                    assignee = "Emma",
                     collectiveCode = "ABC123",
-                    dueDate = LocalDate.parse("2026-04-20"),
-                    category = TaskCategory.OTHER,
+                    dueDate = LocalDate.parse("2026-04-15"),
+                    category = TaskCategory.CLEANING,
                 ),
                 TaskItem(
                     id = 2,
@@ -313,15 +313,16 @@ class TaskOperationsTest {
                     category = TaskCategory.OTHER,
                 ),
                 TaskItem(
-                    id = 1,
-                    title = "Kitchen",
-                    assignee = "Emma",
+                    id = 3,
+                    title = "Bathroom",
+                    assignee = "Kasper",
                     collectiveCode = "ABC123",
-                    dueDate = LocalDate.parse("2026-04-15"),
-                    category = TaskCategory.CLEANING,
+                    dueDate = LocalDate.parse("2026-04-20"),
+                    category = TaskCategory.OTHER,
                 ),
             ),
         )
+        whenever(taskFeedbackRepository.findAllByTaskIdIn(listOf(1L, 2L, 3L))).thenReturn(emptyList())
 
         val result = operations.getTasks("Kasper")
 

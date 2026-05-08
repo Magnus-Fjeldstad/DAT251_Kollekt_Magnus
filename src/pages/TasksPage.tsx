@@ -26,8 +26,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { api } from '../lib/api';
-import { useUser } from '../context/UserContext';
-import { connectCollectiveRealtime } from '../lib/realtime';
+import { useCollectiveRealtime, useUser } from '../context/UserContext';
 import { formatDate, formatDateTime, translateKey } from '../i18n/helpers';
 import type { Task, ShoppingItem, TaskCategory } from '../lib/types';
 import { NidoButton, NidoCard, NidoChip, NidoSection } from '../components/nido';
@@ -364,45 +363,41 @@ function TasksMain() {
       .catch(() => {});
   }, [name]);
 
-  useEffect(() => {
-    if (!name) return;
-    const disconnect = connectCollectiveRealtime(name, (event) => {
-      if (event.type === 'TASK_UPDATED') {
-        const payload = event.payload as
-          | { updatedBy?: string; task?: Task }
-          | undefined;
-        if (payload?.updatedBy === name) return;
-      }
+  useCollectiveRealtime((event) => {
+    if (event.type === 'TASK_UPDATED') {
+      const payload = event.payload as
+        | { updatedBy?: string; task?: Task }
+        | undefined;
+      if (payload?.updatedBy === name) return;
+    }
 
-      if (event.type === 'TASK_UPDATED' || event.type === 'TASK_CREATED') {
-        const nextTask = extractTaskFromRealtimeEvent(event);
-        if (nextTask) upsertTask(nextTask);
-        return;
-      }
+    if (event.type === 'TASK_UPDATED' || event.type === 'TASK_CREATED') {
+      const nextTask = extractTaskFromRealtimeEvent(event);
+      if (nextTask) upsertTask(nextTask);
+      return;
+    }
 
-      if (event.type === 'TASK_DELETED') {
-        const payload = event.payload as { id?: number } | undefined;
-        if (payload?.id !== undefined) {
-          setTasksState((prev) => prev.filter((task) => task.id !== payload.id));
-        }
-        return;
+    if (event.type === 'TASK_DELETED') {
+      const payload = event.payload as { id?: number } | undefined;
+      if (payload?.id !== undefined) {
+        setTasksState((prev) => prev.filter((task) => task.id !== payload.id));
       }
+      return;
+    }
 
-      if (
-        [
-          'SHOPPING_UPDATED',
-          'SHOPPING_ITEM_CREATED',
-          'SHOPPING_ITEM_TOGGLED',
-          'SHOPPING_ITEM_DELETED',
-          'SHOPPING_ITEM_UPDATED',
-          'SHOPPING_ITEM_BOUGHT',
-        ].includes(event.type)
-      ) {
-        void fetchAll();
-      }
-    });
-    return disconnect;
-  }, [name]);
+    if (
+      [
+        'SHOPPING_UPDATED',
+        'SHOPPING_ITEM_CREATED',
+        'SHOPPING_ITEM_TOGGLED',
+        'SHOPPING_ITEM_DELETED',
+        'SHOPPING_ITEM_UPDATED',
+        'SHOPPING_ITEM_BOUGHT',
+      ].includes(event.type)
+    ) {
+      void fetchAll();
+    }
+  }, !!name);
 
   const handleShoppingAdd = async () => {
     if (!newShoppingName.trim()) return;

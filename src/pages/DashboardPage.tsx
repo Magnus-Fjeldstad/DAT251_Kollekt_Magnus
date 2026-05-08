@@ -4,9 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, CheckSquare, ShoppingCart, Wallet, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { useUser } from '../context/UserContext';
+import { useCollectiveRealtime, useUser } from '../context/UserContext';
 import { formatCurrency, formatDate, formatTime, translateKey } from '../i18n/helpers';
-import { connectCollectiveRealtime } from '../lib/realtime';
 import type { DashboardResponse } from '../lib/types';
 import {
   NidoAvatar,
@@ -79,19 +78,15 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [currentUser]);
 
-  useEffect(() => {
-    if (!currentUser) return;
-    const disconnect = connectCollectiveRealtime(currentUser.name, (event) => {
-      if (event.type === 'TASK_UPDATED' || event.type === 'EXPENSE_CREATED' || event.type === 'EVENT_CREATED') {
-        fetchDashboard();
-      }
-      if (event.type === 'MEMBER_ONLINE' || event.type === 'MEMBER_OFFLINE') {
-        const count = (event.payload as { count?: number })?.count;
-        if (count !== undefined) setOnlineCount(count);
-      }
-    });
-    return disconnect;
-  }, [currentUser]);
+  useCollectiveRealtime((event) => {
+    if (event.type === 'TASK_UPDATED' || event.type === 'EXPENSE_CREATED' || event.type === 'EVENT_CREATED') {
+      fetchDashboard();
+    }
+    if (event.type === 'MEMBER_ONLINE' || event.type === 'MEMBER_OFFLINE') {
+      const count = (event.payload as { count?: number })?.count;
+      if (count !== undefined) setOnlineCount(count);
+    }
+  }, !!currentUser);
 
   if (loading || !data) return <DashboardSkeleton />;
 

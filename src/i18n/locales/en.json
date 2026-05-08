@@ -97,6 +97,7 @@
     "alreadyExists": "This already exists.",
     "alreadyInCollective": "You're already part of a household.",
     "invalidJoinCode": "That code doesn't look right. Check it and try again.",
+    "payloadTooLarge": "That file is too large to upload.",
     "generic": "Something went wrong. Please try again."
   },
   "header": {
@@ -290,7 +291,10 @@
     "sendImage": "Send image",
     "togglePollForm": "Toggle poll form",
     "imageAlt": "Shared image",
-    "closeImage": "Close image"
+    "closeImage": "Close image",
+    "imageTooLarge": "Image is too large. Maximum size is {{maxMb}} MB.",
+    "imageUploadFailed": "Couldn't upload image. Please try again.",
+    "dismissError": "Dismiss error"
   },
   "economy": {
     "title": "Economy",

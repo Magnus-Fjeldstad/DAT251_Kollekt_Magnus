@@ -66,10 +66,13 @@ class TaskOperations(
 
     fun getTasks(memberName: String): List<TaskDto> {
         val collectiveCode = collectiveAccessService.requireCollectiveCodeByMemberName(memberName)
-        return taskRepository
-            .findAllByCollectiveCode(collectiveCode)
-            .sortedWith(compareBy<TaskItem> { it.dueDate }.thenBy { it.id })
-            .map { it.toDto(taskFeedbackRepository.findAllByTaskId(it.id)) }
+        val tasks = taskRepository.findAllByCollectiveCodeOrderByDueDateAscIdAsc(collectiveCode)
+        if (tasks.isEmpty()) return emptyList()
+        val feedbacksByTaskId =
+            taskFeedbackRepository
+                .findAllByTaskIdIn(tasks.map { it.id })
+                .groupBy { it.taskId }
+        return tasks.map { it.toDto(feedbacksByTaskId[it.id].orEmpty()) }
     }
 
     @Transactional

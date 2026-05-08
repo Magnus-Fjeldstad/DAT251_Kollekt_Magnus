@@ -126,7 +126,8 @@ class StatsService(
 
                 LeaderboardPeriod.MONTH -> {
                     allTasks.filter {
-                        it.completed && it.completedAt?.year == now.year && it.completedAt?.month == now.month
+                        val completedAt = it.completedAt
+                        it.completed && completedAt != null && completedAt.year == now.year && completedAt.month == now.month
                     }
                 }
             }
@@ -313,33 +314,23 @@ class StatsService(
                 currentUserBalance = userBalance,
                 completedTasksCount =
                     taskRepository
-                        .findAllByCollectiveCode(collectiveCode)
-                        .count { it.completed && it.assignee == user.name },
+                        .countByCollectiveCodeAndCompletedTrueAndAssignee(collectiveCode, user.name)
+                        .toInt(),
                 upcomingTasks =
                     taskRepository
-                        .findAllByCollectiveCode(collectiveCode)
-                        .filter { !it.completed }
-                        .sortedBy { it.dueDate }
-                        .take(3)
+                        .findTop3ByCollectiveCodeAndCompletedFalseOrderByDueDateAscIdAsc(collectiveCode)
                         .map { it.toDto() },
                 upcomingEvents =
                     eventRepository
-                        .findAllByCollectiveCode(collectiveCode)
-                        .filter { it.date >= LocalDate.now() }
-                        .sortedBy { it.date }
-                        .take(3)
+                        .findTop3ByCollectiveCodeAndDateGreaterThanEqualOrderByDateAscTimeAsc(collectiveCode, LocalDate.now())
                         .map { it.toDto() },
                 recentExpenses =
                     expenseRepository
-                        .findAllByCollectiveCode(collectiveCode)
-                        .sortedByDescending { it.date }
-                        .take(3)
+                        .findTop3ByCollectiveCodeOrderByDateDescIdDesc(collectiveCode)
                         .map { it.toDto() },
                 pendingShoppingItems =
                     shoppingItemRepository
-                        .findAllByCollectiveCode(collectiveCode)
-                        .filter { !it.completed }
-                        .take(3)
+                        .findTop3ByCollectiveCodeAndCompletedFalseOrderByIdAsc(collectiveCode)
                         .map { ShoppingItemDto(it.id, it.item, it.addedBy, it.completed) },
             )
 

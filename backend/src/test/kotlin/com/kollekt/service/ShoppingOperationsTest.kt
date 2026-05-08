@@ -50,7 +50,7 @@ class ShoppingOperationsTest {
 
     @Test
     fun `get shopping items maps collective scoped results`() {
-        whenever(shoppingItemRepository.findAllByCollectiveCode("ABC123")).thenReturn(
+        whenever(shoppingItemRepository.findAllByCollectiveCodeOrderByCompletedAscIdAsc("ABC123")).thenReturn(
             listOf(
                 ShoppingItem(id = 1, item = "Milk", addedBy = "Emma", collectiveCode = "ABC123", completed = false),
                 ShoppingItem(id = 2, item = "Soap", addedBy = "Kasper", collectiveCode = "ABC123", completed = true),
